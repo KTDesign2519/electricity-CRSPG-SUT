@@ -2451,6 +2451,7 @@
       const monthlySummary = {};
       
       allReadings.forEach(r => {
+        if (r.buildingName === "มิเตอร์กลางของศูนย์") return;
         const usage = parseFloat(r.usage || 0);
         let cost = parseFloat(r.cost || 0);
         
@@ -2821,25 +2822,46 @@
           };
           
         case 'saveReading':
-          const newId = "RD" + Math.floor(100000 + Math.random() * 900000);
-          const newRecord = {
-            readingId: newId,
-            timestamp: new Date(),
-            date: payload.date,
-            recorderName: payload.recorderName,
-            buildingName: payload.buildingName,
-            previousMeter: parseFloat(payload.previousMeter || 0),
-            currentMeter: parseFloat(payload.currentMeter || 0),
-            usage: parseFloat(payload.usage || 0),
-            unitRate: parseFloat(payload.unitRate || 0),
-            calculatedCost: parseFloat(payload.calculatedCost || 0),
-            photoUrl: payload.photoData ? payload.photoData : "", // ใน Mock Mode จะเก็บ base64 สั้นๆ
-            status: "confirmed"
-          };
+          const dateVal = payload.date;
+          const bNameVal = payload.buildingName;
+          const targetYM = dateVal.substring(0, 7);
           
-          mockReadings.push(newRecord);
-          localStorage.setItem('MOCK_READINGS', JSON.stringify(mockReadings));
-          return { success: true, readingId: newId, photoUrl: newRecord.photoUrl };
+          let existingR = null;
+          if (bNameVal === "มิเตอร์กลางของศูนย์") {
+            existingR = mockReadings.find(item => item.buildingName === "มิเตอร์กลางของศูนย์" && item.date.substring(0, 7) === targetYM);
+          }
+          
+          if (existingR) {
+            existingR.timestamp = new Date();
+            existingR.date = dateVal;
+            existingR.recorderName = payload.recorderName;
+            existingR.previousMeter = parseFloat(payload.previousMeter || 0);
+            existingR.currentMeter = parseFloat(payload.currentMeter || 0);
+            existingR.usage = parseFloat(payload.usage || 0);
+            existingR.unitRate = parseFloat(payload.unitRate || 0);
+            existingR.calculatedCost = parseFloat(payload.calculatedCost || 0);
+            localStorage.setItem('MOCK_READINGS', JSON.stringify(mockReadings));
+            return { success: true, readingId: existingR.readingId, photoUrl: existingR.photoUrl };
+          } else {
+            const newId = "RD" + Math.floor(100000 + Math.random() * 900000);
+            const newRecord = {
+              readingId: newId,
+              timestamp: new Date(),
+              date: dateVal,
+              recorderName: payload.recorderName,
+              buildingName: bNameVal,
+              previousMeter: parseFloat(payload.previousMeter || 0),
+              currentMeter: parseFloat(payload.currentMeter || 0),
+              usage: parseFloat(payload.usage || 0),
+              unitRate: parseFloat(payload.unitRate || 0),
+              calculatedCost: parseFloat(payload.calculatedCost || 0),
+              photoUrl: payload.photoData ? payload.photoData : "",
+              status: "confirmed"
+            };
+            mockReadings.push(newRecord);
+            localStorage.setItem('MOCK_READINGS', JSON.stringify(mockReadings));
+            return { success: true, readingId: newId, photoUrl: newRecord.photoUrl };
+          }
           
         case 'addBuilding':
           const name = payload.buildingName.trim();
@@ -2936,6 +2958,7 @@
           const monthlySummary = {};
           
           mockReadings.forEach(r => {
+            if (r.buildingName === "มิเตอร์กลางของศูนย์") return;
             const usage = r.usage;
             const cost = r.calculatedCost;
             totalUsage += usage;
@@ -2964,6 +2987,7 @@
           
           // เรียงเก่าไปใหม่
           mockReadings.forEach(r => {
+            if (r.buildingName === "มิเตอร์กลางของศูนย์") return;
             if (!buildingHistory[r.buildingName]) {
               buildingHistory[r.buildingName] = [];
             }
@@ -3239,7 +3263,7 @@
       const monthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
       const monthText = `${monthNames[parseInt(parts[1])-1]} ${yearTH}`;
       
-      // คำนวณปริมาณใช้ไฟของทุกตึกรวมกันในเดือนที่เลือก
+      // คำนวณปริมาณใช้ไฟของทุกตึกรวมกันในเดือนที่เลือก (ไม่รวมมิเตอร์กลางของศูนย์)
       const readings = state.allReadings.filter(r => r.date && r.date.substring(0, 7) === yearMonth);
       let totalUsage = 0;
       state.buildings.forEach(b => {
@@ -3249,20 +3273,23 @@
         }
       });
       
-      const prevMonth = getPreviousMonth(yearMonth);
-      const prevKey = `main_meter_prev_${yearMonth}`;
-      const currKey = `main_meter_curr_${yearMonth}`;
+      // ค้นหาบันทึกมิเตอร์กลางของเดือนที่เลือกจาก database
+      const mainMeterRecord = state.allReadings.find(r => r.buildingName === "มิเตอร์กลางของศูนย์" && r.date.substring(0, 7) === yearMonth);
       
-      const savedPrev = localStorage.getItem(prevKey) || '';
-      const prevFallback = localStorage.getItem(`main_meter_curr_${prevMonth}`) || '';
+      // ค้นหาบันทึกมิเตอร์กลางของเดือนก่อนหน้าจาก database เพื่อหาค่าเริ่มต้นอัตโนมัติ
+      const prevMonth = getPreviousMonth(yearMonth);
+      const prevMainMeterRecord = state.allReadings.find(r => r.buildingName === "มิเตอร์กลางของศูนย์" && r.date.substring(0, 7) === prevMonth);
+      
+      const savedPrev = mainMeterRecord ? mainMeterRecord.previousMeter : '';
+      const prevFallback = prevMainMeterRecord ? prevMainMeterRecord.currentMeter : '';
       const displayPrevVal = savedPrev !== '' ? savedPrev : prevFallback;
-      const displayCurrVal = localStorage.getItem(currKey) || '';
+      const displayCurrVal = mainMeterRecord ? mainMeterRecord.currentMeter : '';
       
       function getComparisonHtml(prevVal, currVal) {
         if (prevVal === '' || currVal === '') {
           return `
             <div style="margin-top: 15px; padding: 15px; border-radius: 12px; background-color: rgba(142, 131, 203, 0.04); border: 1px dashed var(--border-color); color: var(--text-muted); font-size: 0.85rem; text-align: center;">
-              💡 กรอกเลขมิเตอร์กลางของศูนย์ครั้งก่อนและครั้งนี้เพื่อคำนวณและวิเคราะห์ผลต่างระบบไฟฟ้ารายเดือน
+              💡 กรอกเลขมิเตอร์กลางของศูนย์ครั้งก่อนและครั้งนี้ และกดปุ่มบันทึก เพื่อเปรียบเทียบผลต่างรายเดือน
             </div>
           `;
         }
@@ -3337,43 +3364,88 @@
             <div id="comparison-result-area">
               ${getComparisonHtml(displayPrevVal, displayCurrVal)}
             </div>
+            
+            <div style="display: flex; justify-content: flex-end; margin-top: 10px;">
+              <button type="button" id="btn-save-main-meter" class="btn-primary" style="height: 38px; padding: 0 18px; font-size: 0.85rem; border-radius: 8px; background: linear-gradient(135deg, #7C3AED, #5B21B6); border: none; display: flex; align-items: center; gap: 6px; cursor: pointer;">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="#FFFFFF">
+                  <path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/>
+                </svg>
+                <span>บันทึกข้อมูลมิเตอร์กลางประจำเดือน</span>
+              </button>
+            </div>
           </div>
         </div>
       `;
       
       const prevInput = document.getElementById('main-meter-prev-input');
       const currInput = document.getElementById('main-meter-curr-input');
+      const saveMainMeterBtn = document.getElementById('btn-save-main-meter');
       
       function handleComparisonInput() {
         const pVal = prevInput ? prevInput.value : '';
         const cVal = currInput ? currInput.value : '';
-        
-        if (prevInput) {
-          if (pVal === '') {
-            localStorage.removeItem(prevKey);
-          } else {
-            localStorage.setItem(prevKey, pVal);
-          }
-        }
-        if (currInput) {
-          if (cVal === '') {
-            localStorage.removeItem(currKey);
-          } else {
-            localStorage.setItem(currKey, cVal);
-          }
-        }
-        
         const activePrev = pVal !== '' ? pVal : prevFallback;
-        const activeCurr = cVal;
         
         const resultArea = document.getElementById('comparison-result-area');
         if (resultArea) {
-          resultArea.innerHTML = getComparisonHtml(activePrev, activeCurr);
+          resultArea.innerHTML = getComparisonHtml(activePrev, cVal);
         }
       }
       
       if (prevInput) prevInput.addEventListener('input', handleComparisonInput);
       if (currInput) currInput.addEventListener('input', handleComparisonInput);
+      
+      if (saveMainMeterBtn) {
+        saveMainMeterBtn.addEventListener('click', async () => {
+          const pVal = prevInput ? prevInput.value : '';
+          const cVal = currInput ? currInput.value : '';
+          const activePrev = pVal !== '' ? pVal : prevFallback;
+          
+          if (activePrev === '' || cVal === '') {
+            showToast("กรุณากรอกตัวเลขมิเตอร์กลางครั้งก่อนและครั้งนี้ให้ครบถ้วนก่อนบันทึก", "warning");
+            return;
+          }
+          
+          const prevMeter = parseFloat(activePrev);
+          const currMeter = parseFloat(cVal);
+          
+          if (isNaN(prevMeter) || isNaN(currMeter) || currMeter < prevMeter) {
+            showToast("ตัวเลขมิเตอร์ไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง", "error");
+            return;
+          }
+          
+          saveMainMeterBtn.disabled = true;
+          const labelSpan = saveMainMeterBtn.querySelector('span');
+          const originalText = labelSpan.innerText;
+          labelSpan.innerText = "กำลังบันทึก...";
+          
+          const usage = currMeter - prevMeter;
+          const payload = {
+            date: selectedDate, // YYYY-MM-DD
+            recorderName: state.currentUser ? state.currentUser.fullName : "Unknown Staff",
+            buildingName: "มิเตอร์กลางของศูนย์",
+            previousMeter: prevMeter,
+            currentMeter: currMeter,
+            usage: usage,
+            unitRate: 0.0,
+            calculatedCost: 0.0,
+            photoData: "" // ไม่ต้องใช้รูปภาพหลักฐาน
+          };
+          
+          const res = await callAPI('saveReading', payload);
+          
+          saveMainMeterBtn.disabled = false;
+          labelSpan.innerText = originalText;
+          
+          if (res.success) {
+            showToast("บันทึกข้อมูลมิเตอร์กลางสำเร็จ!");
+            await loadRecorderViewData();
+          } else {
+            showToast("เกิดข้อผิดพลาด: " + res.error, "error");
+          }
+        });
+      }
+    }
     }
 
     function renderBillingRatesTable() {
@@ -4094,7 +4166,7 @@
       // }
       
       const usage = curr - prev;
-      const cost = isRecorder ? 0.0 : usage * rate;
+      const cost = 0.0;
       
       // จัดเก็บข้อมูลเพื่อเตรียมทำการยืนยันเซฟ
       state.tempReading = {
