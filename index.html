@@ -1,0 +1,4830 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบบันทึกปริมาณการไฟฟ้า อพ. สธ. มทส.</title>
+  <!-- Google Fonts: Sarabun & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- CDNs for Icons, Charts, and HTML2Canvas Export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <style>
+    /* ==========================================================================
+       1. DESIGN SYSTEM & UTILITIES
+       ========================================================================== */
+    :root {
+      --primary: #7C3AED;
+      --primary-hover: #6D28D9;
+      --primary-light: #A78BFA;
+      --primary-subtle: #F5F3FF;
+      --primary-glow: rgba(124, 58, 237, 0.15);
+      
+      --bg-main: #F4F1FD;
+      --bg-card: rgba(255, 255, 255, 0.75);
+      
+      --text-main: #2E2A6C;
+      --text-muted: #767299;
+      --text-purple: #5B21B6;
+      
+      --border-color: rgba(142, 131, 203, 0.16);
+      --border-focus: #A78BFA;
+      
+      --success: #10B981;
+      --success-light: #D1FAE5;
+      --error: #EF4444;
+      --error-light: #FEE2E2;
+      --warning: #F59E0B;
+      --warning-light: #FEF3C7;
+      
+      --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.02);
+      --shadow-md: 0 8px 32px 0 rgba(142, 131, 203, 0.08), inset 0 1px 1px rgba(255, 255, 255, 0.9);
+      --shadow-lg: 0 16px 48px 0 rgba(142, 131, 203, 0.12), inset 0 1px 1px rgba(255, 255, 255, 1);
+      --shadow-xl: 0 24px 64px 0 rgba(142, 131, 203, 0.16), inset 0 1px 1px rgba(255, 255, 255, 1);
+      
+      --radius-sm: 10px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --radius-full: 9999px;
+      
+      --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      --font-sans: 'Sarabun', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* Decorative Background Blobs */
+    .bg-blob {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      -webkit-filter: blur(120px);
+      z-index: -1;
+      opacity: 0.35;
+      pointer-events: none;
+      transition: var(--transition);
+    }
+    
+    .blob-1 {
+      width: 450px;
+      height: 450px;
+      background: radial-gradient(circle, #C084FC 0%, rgba(192, 132, 252, 0) 70%);
+      top: -100px;
+      right: -100px;
+    }
+    
+    .blob-2 {
+      width: 550px;
+      height: 550px;
+      background: radial-gradient(circle, #818CF8 0%, rgba(129, 140, 248, 0) 70%);
+      bottom: -150px;
+      left: -150px;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: linear-gradient(135deg, #F4F1FD 0%, #FFFFFF 35%, #EBE7F9 70%, #F5F2FE 100%);
+      background-attachment: fixed;
+      color: var(--text-main);
+      line-height: 1.6;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    button, input, select {
+      font-family: inherit;
+    }
+
+    /* Common layout classes */
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* Animation effects */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+    }
+
+    /* ==========================================================================
+       2. HEADER & NAVIGATION
+       ========================================================================== */
+    header {
+      background-color: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      transition: var(--transition);
+    }
+
+    .header-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      height: 70px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: var(--primary);
+    }
+
+    .logo svg {
+      width: 32px;
+      height: 32px;
+      fill: var(--primary);
+    }
+
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-info {
+      text-align: right;
+    }
+
+    .user-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--text-main);
+    }
+
+    .user-role {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      background-color: var(--primary-subtle);
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      display: inline-block;
+    }
+
+    .btn-logout {
+      background-color: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 8px 14px;
+      border-radius: var(--radius-md);
+      font-size: 0.85rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: var(--transition);
+    }
+
+    .btn-logout:hover {
+      background-color: var(--error-light);
+      color: var(--error);
+      border-color: var(--error-light);
+    }
+
+    /* ==========================================================================
+       3. NOTIFICATION & STATUS BAR
+       ========================================================================== */
+    .status-banner {
+      background: linear-gradient(135deg, #7C3AED, #A78BFA);
+      color: white;
+      padding: 12px 0;
+      font-size: 0.85rem;
+      font-weight: 500;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .status-banner-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .status-badge-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: var(--success);
+      display: inline-block;
+      box-shadow: 0 0 8px var(--success);
+    }
+
+    .status-indicator.offline {
+      background-color: var(--warning);
+      box-shadow: 0 0 8px var(--warning);
+    }
+
+    /* ==========================================================================
+       4. LOGIN VIEW
+       ========================================================================== */
+    .login-wrapper {
+      display: flex;
+      flex: 1;
+      justify-content: center;
+      align-items: center;
+      padding: 40px 20px;
+      background: radial-gradient(circle at 80% 20%, rgba(167, 139, 250, 0.1), transparent 45%),
+                  radial-gradient(circle at 10% 80%, rgba(124, 58, 237, 0.08), transparent 45%);
+    }
+
+    .login-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-xl);
+      width: 100%;
+      max-width: 440px;
+      padding: 40px 30px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .login-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      background: linear-gradient(90deg, var(--primary-light), var(--primary));
+    }
+
+    .login-logo {
+      margin-bottom: 25px;
+    }
+
+    .login-logo svg {
+      width: 60px;
+      height: 60px;
+      fill: var(--primary);
+      margin-bottom: 10px;
+    }
+
+    .login-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 8px;
+    }
+
+    .login-subtitle {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 30px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+      text-align: left;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input-wrapper svg {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      fill: var(--text-muted);
+    }
+
+    .form-control {
+      width: 100%;
+      height: 52px;
+      padding: 12px 14px 12px 46px;
+      border: 1px solid rgba(142, 131, 203, 0.18);
+      border-radius: var(--radius-md);
+      font-size: 0.95rem;
+      transition: var(--transition);
+      background-color: rgba(243, 240, 253, 0.6);
+      color: var(--text-main);
+      outline: none;
+    }
+
+    .form-control:focus {
+      border-color: var(--primary);
+      background-color: #FFFFFF;
+      box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.12);
+    }
+
+    .btn-submit {
+      width: 100%;
+      height: 52px;
+      background: linear-gradient(135deg, #7C3AED, #5B21B6);
+      color: #FFFFFF;
+      border: none;
+      padding: 14px;
+      border-radius: var(--radius-md);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: var(--transition);
+      box-shadow: 0 10px 25px -5px rgba(124, 58, 237, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-submit:hover {
+      box-shadow: 0 14px 30px -5px rgba(124, 58, 237, 0.4);
+      transform: translateY(-2px);
+      filter: brightness(1.05);
+    }
+
+    .btn-submit:active {
+      transform: translateY(0);
+    }
+
+    .login-error {
+      color: var(--error);
+      background-color: var(--error-light);
+      padding: 10px;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      margin-bottom: 20px;
+      display: none;
+      animation: fadeIn 0.3s ease;
+    }
+
+    /* ==========================================================================
+       5. MAIN VIEWS (RECORDER & ADMIN)
+       ========================================================================== */
+    main {
+      flex: 1;
+      padding: 30px 0;
+    }
+
+    .view-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .view-subtitle {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 25px;
+    }
+
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 25px;
+    }
+
+    @media (min-width: 992px) {
+      .grid-layout {
+        grid-template-columns: 1.6fr 1fr;
+      }
+      .grid-admin {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.75);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      padding: 25px;
+      position: relative;
+      transition: var(--transition);
+    }
+
+    .card:hover {
+      box-shadow: var(--shadow-lg);
+      transform: translateY(-2px);
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    /* Scrollable table container and custom premium scrollbars */
+    .table-container-scrollable {
+      max-height: 400px;
+      overflow-y: auto;
+      position: relative;
+    }
+    
+    .table-container-scrollable::-webkit-scrollbar,
+    #admin-buildings-list-container::-webkit-scrollbar,
+    #building-checklist::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    
+    .table-container-scrollable::-webkit-scrollbar-track,
+    #admin-buildings-list-container::-webkit-scrollbar-track,
+    #building-checklist::-webkit-scrollbar-track {
+      background: rgba(142, 131, 203, 0.05);
+      border-radius: 4px;
+    }
+    
+    .table-container-scrollable::-webkit-scrollbar-thumb,
+    #admin-buildings-list-container::-webkit-scrollbar-thumb,
+    #building-checklist::-webkit-scrollbar-thumb {
+      background: rgba(124, 58, 237, 0.3);
+      border-radius: 4px;
+    }
+    
+    .table-container-scrollable::-webkit-scrollbar-thumb:hover,
+    #admin-buildings-list-container::-webkit-scrollbar-thumb:hover,
+    #building-checklist::-webkit-scrollbar-thumb:hover {
+      background: rgba(124, 58, 237, 0.5);
+    }
+    
+    .table-container-scrollable table thead th {
+      position: sticky;
+      top: 0;
+      background-color: var(--bg-main);
+      z-index: 10;
+      box-shadow: inset 0 -1px 0 var(--border-color);
+    }
+
+    /* Form Fields for Recording */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 15px;
+    }
+
+    @media (min-width: 576px) {
+      .form-grid-2 {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .form-select {
+      width: 100%;
+      height: 52px;
+      padding: 12px 18px;
+      border: 1px solid rgba(142, 131, 203, 0.18);
+      border-radius: var(--radius-md);
+      font-size: 0.95rem;
+      background-color: rgba(243, 240, 253, 0.6);
+      color: var(--text-main);
+      outline: none;
+      transition: var(--transition);
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23767299'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      background-size: 20px;
+    }
+
+    .form-select:focus {
+      border-color: var(--primary);
+      background-color: #FFFFFF;
+      box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.12);
+    }
+
+    /* Radio buttons for unit selection */
+    .rate-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    @media (min-width: 576px) {
+      .rate-grid {
+        grid-template-columns: repeat(7, 1fr);
+      }
+    }
+
+    .rate-option {
+      position: relative;
+    }
+
+    .rate-option input {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .rate-label {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 10px 4px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      background-color: var(--bg-main);
+      transition: var(--transition);
+      user-select: none;
+    }
+
+    .rate-option input:checked + .rate-label {
+      background-color: var(--primary-subtle);
+      border-color: var(--primary);
+      color: var(--primary);
+      box-shadow: 0 2px 4px rgba(124, 58, 237, 0.05);
+    }
+
+    .badge-previous {
+      background-color: var(--primary-subtle);
+      border: 1px dashed var(--primary-light);
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      font-size: 0.9rem;
+      color: var(--text-purple);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 5px;
+    }
+
+    /* Live calculation preview card */
+    .calc-preview {
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.03), rgba(167, 139, 250, 0.06));
+      border: 1px solid var(--primary-light);
+      border-radius: var(--radius-md);
+      padding: 15px;
+      margin-top: 15px;
+      display: flex;
+      justify-content: space-around;
+      text-align: center;
+    }
+
+    .calc-item {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .calc-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .calc-value {
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    /* Camera system design */
+    .camera-box {
+      border: 2px dashed var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 25px;
+      text-align: center;
+      cursor: pointer;
+      position: relative;
+      background-color: var(--bg-main);
+      transition: var(--transition);
+      overflow: hidden;
+      min-height: 180px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .camera-box:hover {
+      border-color: var(--primary-light);
+      background-color: var(--primary-subtle);
+    }
+
+    .camera-icon svg {
+      width: 44px;
+      height: 44px;
+      fill: var(--primary-light);
+      margin-bottom: 12px;
+      transition: var(--transition);
+    }
+
+    .camera-box:hover .camera-icon svg {
+      fill: var(--primary);
+      transform: scale(1.08);
+    }
+
+    .camera-text {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .camera-subtext {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .image-preview {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      object-fit: cover;
+      display: none;
+    }
+
+    .btn-remove-image {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background-color: rgba(239, 68, 68, 0.9);
+      color: white;
+      border: none;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-remove-image svg {
+      width: 16px;
+      height: 16px;
+      fill: white;
+    }
+
+    /* Checklist Section */
+    .checklist-progress-bar {
+      height: 8px;
+      background-color: var(--border-color);
+      border-radius: var(--radius-full);
+      margin-bottom: 15px;
+      overflow: hidden;
+    }
+
+    .checklist-progress-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--primary-light), var(--primary));
+      border-radius: var(--radius-full);
+      transition: width 0.4s ease;
+    }
+
+    .checklist-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 380px;
+      overflow-y: auto;
+      padding-right: 5px;
+    }
+
+    .checklist-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 14px;
+      background-color: var(--bg-main);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .checklist-item.done {
+      border-color: var(--success);
+      background-color: rgba(16, 185, 129, 0.02);
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: var(--radius-full);
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .status-badge.done {
+      background-color: var(--success-light);
+      color: var(--success);
+    }
+
+    .status-badge.pending {
+      background-color: var(--warning-light);
+      color: var(--warning);
+    }
+
+    /* ==========================================================================
+       6. MODAL (CONFIRMATION VIEW)
+       ========================================================================== */
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(30, 27, 75, 0.4);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: var(--transition);
+    }
+
+    .modal-backdrop.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-xl);
+      width: 90%;
+      max-width: 500px;
+      overflow: hidden;
+      transform: translateY(20px);
+      transition: var(--transition);
+    }
+
+    .modal-backdrop.active .modal {
+      transform: translateY(0);
+    }
+
+    .modal-header {
+      background-color: var(--primary-subtle);
+      padding: 18px 24px;
+      font-weight: 700;
+      color: var(--primary);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-body {
+      padding: 24px;
+      max-height: 75vh;
+      overflow-y: auto;
+    }
+
+    .modal-footer {
+      padding: 18px 24px;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      background-color: var(--bg-main);
+    }
+
+    .modal-confirm-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .confirm-field {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .confirm-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .confirm-value {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .confirm-value.highlight {
+      color: var(--primary);
+      font-size: 1.15rem;
+    }
+
+    .confirm-image-container {
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      height: 150px;
+      margin-top: 10px;
+      background-color: var(--bg-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .confirm-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .btn-secondary {
+      background-color: transparent;
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 10px 18px;
+      border-radius: var(--radius-md);
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: var(--transition);
+    }
+
+    .btn-secondary:hover {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+    }
+
+    /* ==========================================================================
+       7. REPORT & RECEIPT EXPORT VIEW
+       ========================================================================== */
+    .receipt-container-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .receipt-card {
+      width: 100%;
+      max-width: 380px;
+      background-color: #FFFFFF;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      padding: 30px 24px;
+      font-family: var(--font-sans);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Receipt decoration */
+    .receipt-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 6px;
+      background: linear-gradient(90deg, var(--primary-light), var(--primary));
+    }
+
+    .receipt-header {
+      text-align: center;
+      margin-bottom: 20px;
+      border-bottom: 2px dashed var(--border-color);
+      padding-bottom: 18px;
+    }
+
+    .receipt-logo svg {
+      width: 48px;
+      height: 48px;
+      fill: var(--primary);
+    }
+
+    .receipt-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-top: 8px;
+    }
+
+    .receipt-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .receipt-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      font-size: 0.85rem;
+    }
+
+    .receipt-label {
+      color: var(--text-muted);
+    }
+
+    .receipt-value {
+      font-weight: 600;
+      color: var(--text-main);
+      text-align: right;
+    }
+
+    .receipt-divider {
+      border-bottom: 1px solid var(--border-color);
+      margin: 15px 0;
+    }
+
+    .receipt-total {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 15px 0;
+      padding: 8px 0;
+      border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .receipt-total-label {
+      font-weight: 700;
+      color: var(--text-main);
+      font-size: 0.95rem;
+    }
+
+    .receipt-total-value {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .receipt-footer {
+      text-align: center;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 20px;
+    }
+
+    .receipt-barcode {
+      margin-top: 15px;
+      height: 35px;
+      background: repeating-linear-gradient(90deg, #111, #111 2px, transparent 2px, transparent 6px);
+      width: 70%;
+      margin-left: auto;
+      margin-right: auto;
+      opacity: 0.65;
+    }
+
+    /* ==========================================================================
+       8. ADMIN DASHBOARD VIEW
+       ========================================================================== */
+    .admin-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(1, 1fr);
+      gap: 15px;
+      margin-bottom: 25px;
+    }
+
+    @media (min-width: 576px) {
+      .admin-stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .stat-card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .stat-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      background-color: var(--primary-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      fill: var(--primary);
+    }
+
+    .stat-icon.green {
+      background-color: var(--success-light);
+      fill: var(--success);
+    }
+
+    .stat-icon.yellow {
+      background-color: var(--warning-light);
+      fill: var(--warning);
+    }
+
+    .stat-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .stat-number {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.2;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    /* Anomaly alerts */
+    .anomaly-container {
+      margin-bottom: 25px;
+    }
+
+    .anomaly-card {
+      background-color: var(--error-light);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: var(--radius-md);
+      padding: 15px 20px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 10px;
+      animation: fadeIn 0.3s ease;
+    }
+
+    .anomaly-icon {
+      fill: var(--error);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .anomaly-title {
+      font-weight: 700;
+      color: #991B1B;
+      font-size: 0.9rem;
+    }
+
+    .anomaly-text {
+      color: #B91C1C;
+      font-size: 0.8rem;
+      margin-top: 2px;
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      margin-bottom: 25px;
+    }
+
+    @media (min-width: 768px) {
+      .charts-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    .chart-container {
+      position: relative;
+      height: 250px;
+      width: 100%;
+    }
+
+    /* Building management panel */
+    .manage-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+
+    @media (min-width: 768px) {
+      .manage-grid {
+        grid-template-columns: 1fr 1.5fr;
+      }
+    }
+
+    .building-item-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .building-item-name {
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .btn-toggle-status {
+      cursor: pointer;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border-color);
+      transition: var(--transition);
+      background-color: white;
+    }
+
+    .btn-toggle-status.active {
+      background-color: var(--success-light);
+      color: var(--success);
+      border-color: var(--success);
+    }
+
+    .btn-toggle-status.inactive {
+      background-color: var(--error-light);
+      color: var(--error);
+      border-color: var(--error);
+    }
+
+    /* History table design */
+    .table-container {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.85rem;
+    }
+
+    th {
+      padding: 12px 14px;
+      background-color: var(--bg-main);
+      color: var(--text-muted);
+      font-weight: 600;
+      border-bottom: 2px solid var(--border-color);
+    }
+
+    td {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-main);
+    }
+
+    tr:hover td {
+      background-color: rgba(124, 58, 237, 0.02);
+    }
+
+    .btn-view-photo {
+      background-color: var(--primary-subtle);
+      color: var(--primary);
+      border: none;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      font-size: 0.75rem;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .btn-view-photo:hover {
+      background-color: var(--primary-light);
+      color: white;
+    }
+
+    /* Toast notification message */
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background-color: var(--text-main);
+      color: white;
+      padding: 12px 24px;
+      border-radius: var(--radius-full);
+      box-shadow: var(--shadow-lg);
+      font-size: 0.85rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      z-index: 2000;
+    }
+
+    .toast.active {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .toast.success {
+      background-color: var(--success);
+    }
+
+    .toast.error {
+      background-color: var(--error);
+    }
+
+    /* --------------------------------------------------------------------------
+       PC FULL-WIDTH & PRINT STYLES FOR SUMMARY TABLE
+       -------------------------------------------------------------------------- */
+    #summary-table-container {
+      grid-column: 1 / -1;
+    }
+
+    .print-only {
+      display: none !important;
+    }
+
+    @media print {
+      body > :not(#view-recorder):not(#view-billing),
+      #main-header,
+      .status-banner,
+      .bg-blob,
+      #view-recorder > .container > .view-title,
+      #view-recorder > .container > .view-subtitle,
+      #view-recorder > .container > .grid-layout > :not(#summary-table-container),
+      #view-billing > .container > :not(#billing-rates-table-container),
+      #summary-table-container button,
+      #billing-rates-table-container button,
+      .no-print {
+        display: none !important;
+      }
+
+      div.print-only {
+        display: block !important;
+      }
+
+      span.print-only {
+        display: inline-block !important;
+      }
+      
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      
+      #view-recorder,
+      #view-recorder > .container,
+      #view-recorder > .container > .grid-layout,
+      #summary-table-container,
+      #view-billing,
+      #view-billing > .container,
+      #billing-rates-table-container {
+        display: block !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        background: transparent !important;
+      }
+
+      #summary-table-container .card,
+      #billing-rates-table-container .card {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+      }
+
+      table {
+        border-collapse: collapse !important;
+        width: 100% !important;
+        margin-top: 10px !important;
+      }
+      
+      th, td {
+        border: 1px solid #000000 !important;
+        padding: 8px 10px !important;
+        color: #000000 !important;
+        font-size: 0.85rem !important;
+      }
+
+      th {
+        background-color: #f2f2f2 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .print-sig-line {
+        border-bottom: 1px dotted #000000 !important;
+        color: #000000 !important;
+      }
+    }
+
+    /* Stretch helper classes for equal card height on desktop */
+    .desktop-stretch-wrapper {
+      height: auto;
+    }
+    .desktop-stretch-card {
+      display: flex;
+      flex-direction: column;
+      height: auto;
+    }
+    
+    @media (min-width: 992px) {
+      .desktop-stretch-wrapper {
+        position: relative;
+        height: 100%;
+      }
+      .desktop-stretch-card {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        display: flex;
+        flex-direction: column;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Background Decorative Blobs -->
+  <div class="bg-blob blob-1"></div>
+  <div class="bg-blob blob-2"></div>
+
+  <!-- ==========================================================================
+       TOP STATUS BAR
+       ========================================================================== -->
+  <div class="status-banner">
+    <div class="container status-banner-content">
+      <div class="status-badge-container">
+        <span id="status-dot" class="status-indicator"></span>
+        <span id="status-text">กำลังเชื่อมต่อกับระบบ Google Sheet...</span>
+        <button id="btn-reset-mock" class="hidden" style="background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.4); color: white; border-radius: var(--radius-sm); padding: 2px 8px; font-size: 0.7rem; cursor: pointer; font-weight: 600; transition: var(--transition); margin-left: 10px; display: inline-flex; align-items: center; gap: 4px;">
+          <span>ล้างข้อมูลจำลอง (Reset)</span>
+        </button>
+      </div>
+      <div>อพ. สธ. มทส. - โครงการบันทึกปริมาณการใช้ไฟฟ้า</div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       HEADER & NAVIGATION
+       ========================================================================== -->
+  <header class="hidden" id="main-header">
+    <div class="container header-container">
+      <div class="logo">
+        <div class="brand-logo" style="display: inline-flex; align-items: center; text-align: left; background: transparent;">
+          <img src="logo.png" alt="SUT Logo" style="height: 44px; display: none;" onload="this.style.display='block'; if(this.nextElementSibling) this.nextElementSibling.style.display='none';" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-flex';">
+          <div style="display: inline-flex; align-items: center; gap: 12px;">
+            <div style="display: flex; flex-direction: column; line-height: 1.05; align-items: flex-start;">
+              <div style="display: flex; align-items: flex-start; gap: 3px;">
+                <span style="font-family: 'Inter', sans-serif; font-weight: 900; font-size: 24px; color: #F35B04; letter-spacing: -1px; margin-top: -3px;">SUT</span>
+                <div style="position: relative; width: 14px; height: 14px; margin-top: 2px;">
+                  <div style="position: absolute; bottom: 0; left: 0; width: 10px; height: 10px; border-left: 2px solid #F35B04; border-bottom: 2px solid #F35B04;"></div>
+                  <svg viewBox="0 0 24 24" style="position: absolute; top: -1px; right: -1px; width: 10px; height: 10px; fill: none; stroke: #F35B04; stroke-width: 4.5; stroke-linecap: round; stroke-linejoin: round;">
+                    <polyline points="14 3 21 3 21 10"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                  </svg>
+                </div>
+              </div>
+              <div style="font-family: 'Inter', sans-serif; font-weight: 700; font-size: 5px; color: #F35B04; letter-spacing: 0.05px; text-transform: uppercase; margin-top: 1px;">
+                Suranaree<br>University of<br>Technology
+              </div>
+            </div>
+            <div style="width: 2px; height: 34px; display: flex; flex-direction: column;">
+              <div style="flex: 1; background-color: #F35B04;"></div>
+              <div style="flex: 1; background-color: #555D65;"></div>
+            </div>
+            <div style="display: flex; flex-direction: column; line-height: 1;">
+              <span style="font-family: 'Inter', sans-serif; font-weight: 800; font-size: 18px; color: #555D65; letter-spacing: -0.5px;">CRSPG - SUT</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="user-profile">
+        <div class="user-info">
+          <div class="user-name" id="profile-name">-</div>
+          <div class="user-role" id="profile-role">-</div>
+        </div>
+        <button class="btn-logout" id="logout-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <path d="M16 17v-3H9v-4h7V7l5 5-5 5M14 2a2 2 0 0 1 2 2v2h-2V4H5v16h9v-2h2v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9z"/>
+          </svg>
+          <span>ออกจากระบบ</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================================================
+       LOGIN VIEW
+       ========================================================================== -->
+  <div class="login-wrapper" id="view-login">
+    <div class="login-card">
+      <div class="login-logo" style="display: flex; justify-content: center; margin-bottom: 25px;">
+        <div class="brand-logo" style="display: inline-flex; align-items: center; text-align: left; background: transparent;">
+          <img src="logo.png" alt="SUT Logo" style="max-height: 90px; width: 90%; max-width: 320px; object-fit: contain; display: none;" onload="this.style.display='block'; if(this.nextElementSibling) this.nextElementSibling.style.display='none';" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-flex';">
+          <div style="display: inline-flex; align-items: center; gap: 14px;">
+            <div style="display: flex; flex-direction: column; line-height: 1.05; align-items: flex-start;">
+              <div style="display: flex; align-items: flex-start; gap: 3px;">
+                <span style="font-family: 'Inter', sans-serif; font-weight: 900; font-size: 32px; color: #F35B04; letter-spacing: -1px; margin-top: -3px;">SUT</span>
+                <div style="position: relative; width: 18px; height: 18px; margin-top: 2px;">
+                  <div style="position: absolute; bottom: 0; left: 0; width: 13px; height: 13px; border-left: 2.5px solid #F35B04; border-bottom: 2.5px solid #F35B04;"></div>
+                  <svg viewBox="0 0 24 24" style="position: absolute; top: -1px; right: -1px; width: 12px; height: 12px; fill: none; stroke: #F35B04; stroke-width: 4.5; stroke-linecap: round; stroke-linejoin: round;">
+                    <polyline points="14 3 21 3 21 10"></polyline>
+                    <line x1="10" y1="14" x2="21" y2="3"></line>
+                  </svg>
+                </div>
+              </div>
+              <div style="font-family: 'Inter', sans-serif; font-weight: 700; font-size: 6.8px; color: #F35B04; letter-spacing: 0.05px; text-transform: uppercase; margin-top: 1px;">
+                Suranaree<br>University of<br>Technology
+              </div>
+            </div>
+            <div style="width: 2.5px; height: 46px; display: flex; flex-direction: column;">
+              <div style="flex: 1; background-color: #F35B04;"></div>
+              <div style="flex: 1; background-color: #555D65;"></div>
+            </div>
+            <div style="display: flex; flex-direction: column; line-height: 1;">
+              <span style="font-family: 'Inter', sans-serif; font-weight: 800; font-size: 24px; color: #555D65; letter-spacing: -0.5px;">CRSPG - SUT</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="login-error" id="login-error-msg">ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง</div>
+      
+      <form id="login-form">
+        <div class="form-group">
+          <label for="username">ชื่อผู้ใช้งาน (Username)</label>
+          <div class="input-wrapper">
+            <!-- SVG User Icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/>
+            </svg>
+            <input type="text" id="username" class="form-control" placeholder="กรอกชื่อผู้ใช้ เช่น staff, admin" required autocomplete="username">
+          </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="password">รหัสผ่าน (Password)</label>
+          <div class="input-wrapper">
+            <!-- SVG Lock Icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+            </svg>
+            <input type="password" id="password" class="form-control" placeholder="กรอกรหัสผ่าน" required autocomplete="current-password">
+          </div>
+        </div>
+        
+        <button type="submit" class="btn-submit">
+          <span>เข้าสู่ระบบ</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       RECORDER VIEW
+       ========================================================================== -->
+  <main class="hidden" id="view-recorder">
+    <div class="container">
+      <div class="view-title">
+        <span>📝 บันทึกปริมาณการใช้ไฟฟ้า</span>
+      </div>
+      <div class="view-subtitle">สำหรับผู้บันทึกข้อมูลอาคารในเครือ อพ. สธ. มทส.</div>
+      
+      <div class="grid-layout">
+        
+        <!-- Left: Form Card -->
+        <div class="card fade-in">
+          <div class="card-title">กรอกข้อมูลมิเตอร์ไฟฟ้ารายอาคาร</div>
+          
+          <form id="record-form">
+            <div class="form-grid form-grid-2">
+              <div class="form-group">
+                <label for="record-date">วันที่เลือกบันทึก</label>
+                <input type="date" id="record-date" class="form-control" style="padding-left: 14px;" required>
+              </div>
+              <div class="form-group">
+                <label for="record-building">เลือกอาคาร / บ้านพัก</label>
+                <select id="record-building" class="form-select" required>
+                  <option value="" disabled selected>-- เลือกอาคาร --</option>
+                </select>
+              </div>
+            </div>
+            
+            <div class="form-grid form-grid-2" style="margin-top: 15px;">
+              <div class="form-group">
+                <label>ค่ามิเตอร์ครั้งก่อนหน้า (หน่วย)</label>
+                <input type="number" id="record-prev-meter" class="form-control" style="padding-left: 14px;" value="0" readonly>
+                <div id="prev-badge" class="badge-previous hidden">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                  <span>พบค่าล่าสุดในระบบดึงให้อัตโนมัติ</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="record-curr-meter">ค่ามิเตอร์ปัจจุบัน ณ วันที่บันทึก (หน่วย)</label>
+                <input type="number" step="0.01" id="record-curr-meter" class="form-control" style="padding-left: 14px;" placeholder="ตัวอย่าง 1250" required min="0">
+              </div>
+            </div>
+            
+            <div class="form-group" style="margin-top: 20px; display: none;">
+              <label>กำหนดอัตราค่าไฟฟ้า (บาทต่อหน่วย)</label>
+              <div class="rate-grid">
+                <div class="rate-option">
+                  <input type="radio" name="unit-rate" id="rate-4" value="4.0" checked>
+                  <label for="rate-4" class="rate-label">4.0</label>
+                </div>
+                <div class="rate-option">
+                  <input type="radio" name="unit-rate" id="rate-4-5" value="4.5">
+                  <label for="rate-4-5" class="rate-label">4.5</label>
+                </div>
+                <div class="rate-option">
+                  <input type="radio" name="unit-rate" id="rate-5" value="5.0">
+                  <label for="rate-5" class="rate-label">5.0</label>
+                </div>
+                <div class="rate-option">
+                  <input type="radio" name="unit-rate" id="rate-5-5" value="5.5">
+                  <label for="rate-5-5" class="rate-label">5.5</label>
+                </div>
+                <div class="rate-option">
+                  <input type="radio" name="unit-rate" id="rate-6" value="6.0">
+                  <label for="rate-6" class="rate-label">6.0</label>
+                </div>
+                <div class="rate-option">
+                  <input type="radio" name="unit-rate" id="rate-6-5" value="6.5">
+                  <label for="rate-6-5" class="rate-label">6.5</label>
+                </div>
+                <div class="rate-option">
+                  <input type="radio" name="unit-rate" id="rate-7" value="7.0">
+                  <label for="rate-7" class="rate-label">7.0</label>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Live Calc Display -->
+            <div class="calc-preview">
+              <div class="calc-item" style="flex: 1; text-align: center;">
+                <span class="calc-label">ปริมาณใช้ไฟที่จดบันทึกได้</span>
+                <span class="calc-value" id="calc-usage">0 หน่วย</span>
+              </div>
+              <div class="calc-item" id="calc-cost-wrapper" style="display: none; border-left: 1px solid var(--border-color); padding-left: 20px;">
+                <span class="calc-label">ค่าไฟฟ้าประมาณการ</span>
+                <span class="calc-value" id="calc-cost">0.00 บาท</span>
+              </div>
+            </div>
+            
+            <!-- Mobile Camera upload -->
+            <div class="form-group" style="margin-top: 20px;">
+              <label>ถ่ายภาพหน้าปัดมิเตอร์ไฟฟ้า</label>
+              <input type="file" id="camera-file" accept="image/*" capture="environment" style="display: none;">
+              <div class="camera-box" id="camera-trigger">
+                <button type="button" class="btn-remove-image" id="btn-remove-preview">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                </button>
+                <img class="image-preview" id="camera-preview" alt="Meter preview">
+                <div class="camera-icon" id="camera-icon-group">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                    <path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/>
+                  </svg>
+                </div>
+                <div class="camera-text" id="camera-text-main">กดเพื่อเปิดกล้องมือถือถ่ายภาพ / แนบรูปภาพ</div>
+                <div class="camera-subtext" id="camera-text-sub">ระบบจะบีบอัดรูปภาพให้อัตโนมัติเพื่อความรวดเร็ว</div>
+              </div>
+            </div>
+            
+            <button type="submit" class="btn-submit" style="margin-top: 25px;">
+              <span>💾 ตรวจสอบและบันทึกข้อมูล</span>
+            </button>
+          </form>
+        </div>
+        
+        <!-- Right: Status list Checklist -->
+        <div class="desktop-stretch-wrapper">
+          <div class="card fade-in desktop-stretch-card">
+            <div class="card-title">
+              <span>📊 สถานะการบันทึกเดือนนี้</span>
+              <span class="status-badge done" id="checklist-pct-badge">0%</span>
+            </div>
+            
+            <div class="checklist-progress-bar">
+              <div class="checklist-progress-fill" id="checklist-pct-fill"></div>
+            </div>
+            
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;" id="checklist-summary-text">
+              กำลังโหลดข้อมูลอาคาร...
+            </div>
+            
+            <ul class="checklist-list" id="building-checklist" style="flex: 1; min-height: 0; max-height: none; overflow-y: auto;">
+              <!-- Checklist items load here -->
+            </ul>
+            
+            <button type="button" class="btn-secondary" id="btn-open-manage-buildings" style="width: 100%; margin-top: 15px; display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <span>🏢 จัดการอาคาร (เพิ่ม/แก้ไข/ปิดใช้งาน)</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- Recorder Main Meter Comparison Container -->
+      <div id="recorder-comparison-container"></div>
+    </div>
+  </main>
+
+  <!-- ==========================================================================
+       REPORT & EXPORT VIEW
+       ========================================================================== -->
+  <main class="hidden" id="view-report">
+    <div class="container receipt-container-wrapper fade-in">
+      <div class="view-title" style="text-align: center; justify-content: center; width: 100%;">
+        <span>🧾 ใบแจ้งยอดค่าไฟฟ้า</span>
+      </div>
+      
+      <!-- Receipt element to be exported as image -->
+      <div class="receipt-card" id="export-receipt-element">
+        <div class="receipt-header">
+          <div class="receipt-logo" style="display: flex; justify-content: center; margin-bottom: 12px;">
+            <div class="brand-logo" style="display: inline-flex; align-items: center; text-align: left; background: transparent;">
+              <img src="logo.png" alt="SUT Logo" style="height: 40px; display: none;" onload="this.style.display='block'; if(this.nextElementSibling) this.nextElementSibling.style.display='none';" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='inline-flex';">
+              <div style="display: inline-flex; align-items: center; gap: 10px;">
+                <div style="display: flex; flex-direction: column; line-height: 1.05; align-items: flex-start;">
+                  <div style="display: flex; align-items: flex-start; gap: 2px;">
+                    <span style="font-family: 'Inter', sans-serif; font-weight: 900; font-size: 22px; color: #F35B04; letter-spacing: -1px; margin-top: -3px;">SUT</span>
+                    <div style="position: relative; width: 12px; height: 12px; margin-top: 1px;">
+                      <div style="position: absolute; bottom: 0; left: 0; width: 8px; height: 8px; border-left: 2px solid #F35B04; border-bottom: 2px solid #F35B04;"></div>
+                      <svg viewBox="0 0 24 24" style="position: absolute; top: -1px; right: -1px; width: 8px; height: 8px; fill: none; stroke: #F35B04; stroke-width: 4.5; stroke-linecap: round; stroke-linejoin: round;">
+                        <polyline points="14 3 21 3 21 10"></polyline>
+                        <line x1="10" y1="14" x2="21" y2="3"></line>
+                      </svg>
+                    </div>
+                  </div>
+                  <div style="font-family: 'Inter', sans-serif; font-weight: 700; font-size: 4.5px; color: #F35B04; letter-spacing: 0.05px; text-transform: uppercase; margin-top: 1px;">
+                    Suranaree<br>University of<br>Technology
+                  </div>
+                </div>
+                <div style="width: 1.5px; height: 30px; display: flex; flex-direction: column;">
+                  <div style="flex: 1; background-color: #F35B04;"></div>
+                  <div style="flex: 1; background-color: #555D65;"></div>
+                </div>
+                <div style="display: flex; flex-direction: column; line-height: 1;">
+                  <span style="font-family: 'Inter', sans-serif; font-weight: 800; font-size: 16px; color: #555D65; letter-spacing: -0.5px;">CRSPG - SUT</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <h2 class="receipt-title">ใบแจ้งค่าไฟฟ้า</h2>
+          <div class="receipt-subtitle">โครงการอนุรักษ์พันธุกรรมพืชฯ อพ. สธ. มทส.</div>
+        </div>
+        
+        <div class="receipt-row">
+          <span class="receipt-label">รหัสบันทึก:</span>
+          <span class="receipt-value" id="rpt-id">-</span>
+        </div>
+        <div class="receipt-row">
+          <span class="receipt-label">อาคาร/บ้านพัก:</span>
+          <span class="receipt-value" id="rpt-building" style="font-size: 0.95rem; color: var(--primary);">ตึกทดสอบ</span>
+        </div>
+        <div class="receipt-row">
+          <span class="receipt-label">ประจำรอบเดือน:</span>
+          <span class="receipt-value" id="rpt-date">-</span>
+        </div>
+        <div class="receipt-row">
+          <span class="receipt-label">ผู้บันทึก:</span>
+          <span class="receipt-value" id="rpt-recorder">-</span>
+        </div>
+        
+        <div class="receipt-divider"></div>
+        
+        <div class="receipt-row">
+          <span class="receipt-label">เลขมิเตอร์ครั้งก่อนหน้า:</span>
+          <span class="receipt-value"><span id="rpt-prev">-</span> หน่วย</span>
+        </div>
+        <div class="receipt-row">
+          <span class="receipt-label">เลขมิเตอร์ครั้งนี้:</span>
+          <span class="receipt-value"><span id="rpt-curr">-</span> หน่วย</span>
+        </div>
+        <div class="receipt-row">
+          <span class="receipt-label">ปริมาณการใช้งาน:</span>
+          <span class="receipt-value" style="color: var(--primary);"><span id="rpt-usage">-</span> หน่วย</span>
+        </div>
+        <div class="receipt-row">
+          <span class="receipt-label">อัตราค่าไฟฟ้า:</span>
+          <span class="receipt-value"><span id="rpt-rate">-</span> บาท/หน่วย</span>
+        </div>
+        
+        <div class="receipt-total">
+          <span class="receipt-total-label">รวมเงินค่าไฟฟ้าทั้งสิ้น</span>
+          <span class="receipt-total-value"><span id="rpt-cost">-</span> บาท</span>
+        </div>
+        
+        <!-- Cashier and Recording Officer Signatures -->
+        <div style="margin-top: 20px; margin-bottom: 20px; padding-top: 15px; border-top: 1px dashed rgba(142, 131, 203, 0.2); display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted); text-align: center;">
+          <div style="width: 46%;">
+            <div style="font-weight: 600;">ผู้รับเงิน / แคชเชียร์</div>
+            <div style="margin-top: 25px; border-bottom: 1px dotted var(--text-muted); width: 85%; margin-left: auto; margin-right: auto;"></div>
+            <div style="margin-top: 5px;">(................................................)</div>
+          </div>
+          <div style="width: 46%;">
+            <div style="font-weight: 600;">พนักงานผู้บันทึก</div>
+            <div style="margin-top: 25px; border-bottom: 1px dotted var(--text-muted); width: 85%; margin-left: auto; margin-right: auto;"></div>
+            <div style="margin-top: 5px;" id="rpt-signature-name">(................................................)</div>
+          </div>
+        </div>
+        
+        <div class="receipt-footer">
+          <div>*โปรดชำระเงินตามช่องทางที่หน่วยงานกำหนด*</div>
+          <div>ขอขอบคุณที่ร่วมใจประหยัดพลังงาน</div>
+        </div>
+        <div class="receipt-barcode"></div>
+      </div>
+      
+      <div style="display: flex; gap: 12px; margin-top: 10px;">
+        <button class="btn-secondary" id="btn-back-to-recorder" style="display: flex; align-items: center; gap: 6px;">
+          <span>← กลับไปหน้าบันทึก</span>
+        </button>
+        <button class="btn-submit" id="btn-export-png" style="width: auto; padding: 12px 24px;">
+          <span>📥 บันทึกเป็นรูปภาพ (.PNG)</span>
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ==========================================================================
+       BILLING VIEW
+       ========================================================================== -->
+  <main class="hidden" id="view-billing">
+    <div class="container">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
+        <div>
+          <div class="view-title" style="margin-bottom: 5px;">
+            <span>💵 จัดการอัตราค่าไฟฟ้า (Billing Control Panel)</span>
+          </div>
+          <div class="view-subtitle" style="margin-bottom: 0;">กำหนดเรตราคาค่าไฟฟ้าต่อหน่วยรายอาคาร และควบคุมรายงานสรุปยอดเรียกเก็บประจำเดือน</div>
+        </div>
+        
+        <!-- Controls: Month selector -->
+        <div style="display: flex; align-items: center; gap: 12px;" class="no-print">
+          <label for="billing-month-select" style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">เลือกเดือนบันทึก:</label>
+          <select id="billing-month-select" class="form-select" style="width: auto; height: 38px; font-size: 0.85rem; padding: 6px 36px 6px 12px;">
+            <!-- Options dynamically loaded in JS -->
+          </select>
+        </div>
+      </div>
+      
+      <!-- Rates input table container -->
+      <div id="billing-rates-table-container"></div>
+      
+    </div>
+  </main>
+
+  <!-- ==========================================================================
+       ADMIN VIEW
+       ========================================================================== -->
+  <main class="hidden" id="view-admin">
+    <div class="container">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; margin-bottom: 20px;">
+        <div>
+          <div class="view-title" style="margin-bottom: 5px;">
+            <span>🔑 หน้าผู้ดูแลระบบ (Admin Dashboard)</span>
+          </div>
+          <div class="view-subtitle" style="margin-bottom: 0;">วิเคราะห์ข้อมูลและตรวจสอบพฤติกรรมการใช้ไฟฟ้าใน อพ. สธ. มทส.</div>
+        </div>
+        <!-- Controls: Month selector and Export button -->
+        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;" class="no-print">
+          <label for="admin-month-select" style="font-size: 0.85rem; font-weight: 600; color: var(--text-main);">เลือกเดือนประเมินผล:</label>
+          <select id="admin-month-select" class="form-select" style="width: auto; height: 38px; font-size: 0.85rem; padding: 6px 36px 6px 12px;">
+            <!-- Options dynamically loaded in JS -->
+          </select>
+          <button id="btn-export-admin-dashboard" class="btn-primary" style="height: 38px; padding: 0 15px; font-size: 0.85rem; border-radius: 8px; display: flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #7C3AED, #5B21B6); border: none;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="#FFFFFF">
+              <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/>
+            </svg>
+            <span>📸 Export Dashboard (.png)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- ส่วนที่จะโดนจับภาพเพื่อ Export -->
+      <div id="admin-dashboard-snapshot" style="border-radius: 20px; background: transparent; display: flex; flex-direction: column; gap: 20px;">
+        
+        <!-- Stats Cards -->
+        <div class="admin-stats-grid" style="margin-bottom: 0;">
+          <div class="stat-card">
+            <div class="stat-icon">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path d="M19 12h-2v3h-3v2h5v-5zM7 9h2v3h3v2H7V9zm14-6H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H3V5h18v14z"/></svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-number" id="admin-stat-total-usage">0</span>
+              <span class="stat-label">การใช้ไฟฟ้ารวมรอบเดือน (หน่วย)</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon green">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/></svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-number" id="admin-stat-total-cost">฿0</span>
+              <span class="stat-label">ค่าไฟฟ้ารวมรอบเดือน (บาท)</span>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon yellow">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+            </div>
+            <div class="stat-info">
+              <span class="stat-number" id="admin-stat-buildings-count">0</span>
+              <span class="stat-label">จำนวนอาคารทั้งหมด</span>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Anomaly Alert Banner -->
+        <div class="anomaly-container hidden" id="admin-anomalies-list" style="margin-bottom: 0;">
+          <!-- Anomalies load here -->
+        </div>
+        
+        <!-- Charts row -->
+        <div class="charts-grid" style="margin-bottom: 0;">
+          <div class="card">
+            <div class="card-title">📈 แนวโน้มการใช้ไฟฟ้ารวม (รายเดือน)</div>
+            <div class="chart-container">
+              <canvas id="chart-monthly-trend"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">📊 สัดส่วนค่าใช้จ่ายไฟฟ้ารายอาคารประจำเดือน</div>
+            <div class="chart-container">
+              <canvas id="chart-building-ratio"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- NEW Grouped Charts & Details Table: Monthly Comparison of All Buildings -->
+        <div style="display: flex; flex-direction: column; gap: 20px; margin-bottom: 0;">
+          <div class="card" style="width: 100%;">
+            <div class="card-title">📊 เปรียบเทียบการใช้ไฟฟ้าของทุกอาคาร (หน่วย)</div>
+            <div class="chart-container" style="height: 380px;">
+              <canvas id="chart-all-buildings-compare"></canvas>
+            </div>
+          </div>
+          
+          <div class="card" style="display: flex; flex-direction: column; width: 100%; height: auto; overflow: hidden; margin-bottom: 0;">
+            <div class="card-title" style="margin-bottom: 12px;">📋 รายละเอียดและสถานะการจดบันทึกรายอาคาร</div>
+            <div class="table-container table-container-scrollable" style="max-height: 320px; overflow-y: auto;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 0.82rem;">
+                <thead>
+                  <tr style="border-bottom: 2px solid rgba(142, 131, 203, 0.2); color: var(--text-muted); background: rgba(142, 131, 203, 0.02);">
+                    <th style="text-align: left; padding: 10px 8px;">อาคาร / บ้านพัก</th>
+                    <th style="text-align: right; padding: 10px 8px;">ก่อนหน้า (หน่วย)</th>
+                    <th style="text-align: right; padding: 10px 8px;">ครั้งนี้ (หน่วย)</th>
+                    <th style="text-align: right; padding: 10px 8px;">ใช้จริง</th>
+                    <th style="text-align: right; padding: 10px 8px;">ยอดเงิน (บาท)</th>
+                    <th style="text-align: center; padding: 10px 8px;">สถานะ</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-dashboard-table-body">
+                  <!-- Dynamic content loaded in JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Individual Building Chart (Dual-Axis Usage vs Cost) -->
+      <div class="card" style="margin-bottom: 25px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 10px;">
+          <div style="font-size: 1.1rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="var(--primary)" style="vertical-align: middle;">
+              <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+            </svg>
+            <span>📊 วิเคราะห์ปริมาณใช้ไฟฟ้าและค่าไฟรายอาคาร (สถิติรายเดือน)</span>
+          </div>
+          <select id="chart-building-select" class="form-select" style="width: auto; padding: 6px 36px 6px 12px; font-size: 0.85rem; height: 36px;">
+            <!-- Options dynamically loaded in JS -->
+          </select>
+        </div>
+        <div class="chart-container" style="height: 300px;">
+          <canvas id="chart-individual-building"></canvas>
+        </div>
+      </div>
+      <!-- Grid Bottom: Manage Buildings & History -->
+      <div class="manage-grid">
+        
+        <!-- Add/Remove Buildings Panel -->
+        <div class="card" style="height: fit-content;">
+          <div class="card-title">🏢 ระบบจัดการอาคาร (เพิ่ม/ลดจุดบันทึก)</div>
+          
+          <!-- Add Building Form -->
+          <form id="admin-add-building-form" style="margin-bottom: 20px; padding-bottom: 20px; border-bottom: 1px solid var(--border-color);">
+            <div class="form-group">
+              <label for="new-building-name">ชื่ออาคารใหม่</label>
+              <input type="text" id="new-building-name" class="form-control" style="padding-left: 14px;" placeholder="เช่น ตึกวิจัยย่อย, บ้านพัก C3" required>
+            </div>
+            <div class="form-group">
+              <label for="new-building-meter">รหัสมิเตอร์ไฟฟ้า (ถ้ามี)</label>
+              <input type="text" id="new-building-meter" class="form-control" style="padding-left: 14px;" placeholder="เช่น MTR-006">
+            </div>
+            <button type="submit" class="btn-submit" style="padding: 10px;">
+              <span>➕ เพิ่มอาคารเข้าสู่ระบบ</span>
+            </button>
+          </form>
+          
+          <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 10px;">รายการอาคารทั้งหมด (กดคลิกเพื่อเปิด/ปิดใช้งาน)</label>
+          <div style="max-height: 250px; overflow-y: auto;" id="admin-buildings-list-container">
+            <!-- Buildings toggle list load here -->
+          </div>
+        </div>
+        
+        <!-- History Records Table -->
+        <div class="card">
+          <div class="card-title">📅 ประวัติการบันทึกค่ามิเตอร์ไฟฟ้าล่าสุด (100 รายการล่าสุด)</div>
+          <div class="table-container table-container-scrollable">
+            <table>
+              <thead>
+                <tr>
+                  <th>วันที่บันทึก</th>
+                  <th>อาคาร</th>
+                  <th>มิเตอร์ก่อนหน้า</th>
+                  <th>มิเตอร์ล่าสุด</th>
+                  <th>ใช้งาน (หน่วย)</th>
+                  <th>รวมเงิน</th>
+                  <th>รูปหลักฐาน</th>
+                </tr>
+              </thead>
+              <tbody id="admin-history-table-body">
+                <tr>
+                  <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">ไม่มีประวัติการบันทึกข้อมูล</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+      </div>
+    </div>
+  </main>
+
+  <!-- ==========================================================================
+       MODAL: CONFIRMATION WINDOW
+       ========================================================================== -->
+  <div class="modal-backdrop" id="confirmation-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <span>🔍 ตรวจสอบความถูกต้องของข้อมูล</span>
+        <button type="button" class="btn-secondary" id="btn-modal-close-x" style="padding: 4px 8px; border:none; background:transparent; font-size:1.2rem;">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-confirm-grid">
+          <div class="confirm-field">
+            <span class="confirm-label">อาคาร:</span>
+            <span class="confirm-value" id="cf-building">-</span>
+          </div>
+          <div class="confirm-field">
+            <span class="confirm-label">วันที่บันทึก:</span>
+            <span class="confirm-value" id="cf-date">-</span>
+          </div>
+          <div class="confirm-field">
+            <span class="confirm-label">เลขมิเตอร์ครั้งก่อน:</span>
+            <span class="confirm-value"><span id="cf-prev-meter">-</span> หน่วย</span>
+          </div>
+          <div class="confirm-field">
+            <span class="confirm-label">เลขมิเตอร์ล่าสุด:</span>
+            <span class="confirm-value"><span id="cf-curr-meter">-</span> หน่วย</span>
+          </div>
+          <div class="confirm-field">
+            <span class="confirm-label">ปริมาณใช้งาน:</span>
+            <span class="confirm-value highlight"><span id="cf-usage">-</span> หน่วย</span>
+          </div>
+          <div class="confirm-field">
+            <span class="confirm-label">อัตราค่าไฟ:</span>
+            <span class="confirm-value"><span id="cf-rate">-</span> บาท/หน่วย</span>
+          </div>
+        </div>
+        
+        <div class="confirm-field" style="border-top: 1px solid var(--border-color); padding-top: 15px; margin-top: 10px;">
+          <span class="confirm-label" style="font-size: 0.85rem;">ยอดคำนวณเงินค่าไฟฟ้าสุทธิ</span>
+          <span class="confirm-value highlight" style="font-size: 1.8rem;" id="cf-cost">฿0.00</span>
+        </div>
+        
+        <div class="confirm-field" style="margin-top: 15px;">
+          <span class="confirm-label">รูปถ่ายมิเตอร์หลักฐาน:</span>
+          <div class="confirm-image-container">
+            <span id="cf-no-photo-text" style="font-size: 0.8rem; color: var(--text-muted);">ไม่ได้แนบภาพถ่ายมิเตอร์ไฟ</span>
+            <img class="confirm-image hidden" id="cf-image" alt="Confirm photo">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="btn-modal-cancel">แก้ไขข้อมูล</button>
+        <button class="btn-submit" id="btn-modal-confirm" style="width: auto; padding: 10px 24px;">
+          <span>✅ ยืนยันข้อมูลถูกต้อง</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL: MANAGE BUILDINGS (ADD / EDIT / TOGGLE)
+       ========================================================================== -->
+  <div class="modal-backdrop" id="manage-buildings-modal">
+    <div class="modal" style="max-width: 500px;">
+      <div class="modal-header">
+        <span>🏢 จัดการอาคาร / บ้านพักพนักงาน</span>
+        <button type="button" class="btn-secondary" id="btn-manage-close-x" style="padding: 4px 8px; border:none; background:transparent; font-size:1.2rem;">×</button>
+      </div>
+      <div class="modal-body">
+        <!-- Tab buttons: Add Building / Edit Building -->
+        <div style="display: flex; gap: 10px; margin-bottom: 18px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+          <button type="button" class="btn-toggle-status active" id="tab-add-building" style="flex: 1; border-radius: var(--radius-sm); padding: 8px 12px; font-size: 0.85rem; cursor: pointer; border: 1px solid var(--primary); background: var(--primary-subtle); color: var(--primary); font-weight:600;">เพิ่มอาคารใหม่</button>
+          <button type="button" class="btn-toggle-status" id="tab-edit-building" style="flex: 1; border-radius: var(--radius-sm); padding: 8px 12px; font-size: 0.85rem; cursor: pointer; border: 1px solid var(--border-color); background: transparent; color: var(--text-muted); font-weight:600;">แก้ไข / ปิดใช้งานอาคารเดิม</button>
+        </div>
+        
+        <!-- Form: Add Building -->
+        <div id="form-manage-add">
+          <form id="modal-add-building-form">
+            <div class="form-group">
+              <label for="modal-new-name">ชื่ออาคารใหม่</label>
+              <input type="text" id="modal-new-name" class="form-control" style="padding-left: 14px;" placeholder="เช่น บ้านพัก A2" required>
+            </div>
+            <div class="form-group">
+              <label for="modal-new-meter">รหัสมิเตอร์ไฟฟ้า (ถ้ามี)</label>
+              <input type="text" id="modal-new-meter" class="form-control" style="padding-left: 14px;" placeholder="เช่น MTR-006">
+            </div>
+            <button type="submit" class="btn-submit" style="padding: 10px;">
+              <span>➕ เพิ่มอาคารเข้าสู่ระบบ</span>
+            </button>
+          </form>
+        </div>
+        
+        <!-- Form: Edit/Disable Building -->
+        <div id="form-manage-edit" class="hidden">
+          <form id="modal-edit-building-form">
+            <div class="form-group">
+              <label for="modal-edit-select">เลือกอาคารที่ต้องการแก้ไข</label>
+              <select id="modal-edit-select" class="form-select" required>
+                <option value="" disabled selected>-- เลือกอาคาร --</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="modal-edit-name">ชื่ออาคารใหม่ (เปลี่ยนชื่อ)</label>
+              <input type="text" id="modal-edit-name" class="form-control" style="padding-left: 14px;" placeholder="กรอกชื่ออาคารใหม่" required>
+            </div>
+            <div class="form-group">
+              <label for="modal-edit-meter">รหัสมิเตอร์ใหม่</label>
+              <input type="text" id="modal-edit-meter" class="form-control" style="padding-left: 14px;" placeholder="กรอกรหัสมิเตอร์ใหม่">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+              <button type="button" class="btn-secondary" id="btn-modal-toggle-status" style="flex: 1; padding: 10px; color: var(--error); border-color: var(--error); font-weight:600; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                <span>🔴 ปิดใช้งานอาคาร</span>
+              </button>
+              <button type="submit" class="btn-submit" style="flex: 1.5; padding: 10px;">
+                <span>💾 บันทึกการแก้ไข</span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Image lightbox for admin photo preview -->
+  <div class="modal-backdrop" id="image-lightbox-modal">
+    <div class="modal" style="max-width: 600px;">
+      <div class="modal-header">
+        <span id="lightbox-title">ภาพหลักฐานมิเตอร์ไฟฟ้า</span>
+        <button type="button" class="btn-secondary" id="btn-lightbox-close" style="padding: 4px 8px; border:none; background:transparent; font-size:1.2rem;">×</button>
+      </div>
+      <div class="modal-body" style="padding: 10px; display: flex; justify-content: center; background-color: #000;">
+        <img id="lightbox-img" src="" alt="Full Meter image" style="max-width: 100%; max-height: 70vh; object-fit: contain;">
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       TOAST NOTIFICATION
+       ========================================================================== -->
+  <div class="toast" id="toast-notification">
+    <span id="toast-text">ข้อความแจ้งเตือน</span>
+  </div>
+
+  <!-- ==========================================================================
+       9. JAVASCRIPT SYSTEM LOGIC
+       ========================================================================== -->
+  <script>
+    // --------------------------------------------------------------------------
+    // 9.1 คอนฟิกูเรชัน และการเปิดระบบ (Config & Initialization)
+    // --------------------------------------------------------------------------
+    
+    // **วาง Web App URL ของ Google Apps Script ของคุณที่นี่**
+    // หากปล่อยว่างไว้ หรือเกิดข้อผิดพลาดในการโหลด ระบบจะสลับเป็นระบบทดสอบแบบจำลอง (Mock Mode) เพื่อความสะดวกในการใช้งาน
+    const API_URL = "https://script.google.com/macros/s/AKfycbyiYNWl-UcZ0o3j7NrVyfWdDoEjvh8kLe2njFg-6cJLQgViOytDwij3VYi43T0DDmrRgg/exec";
+
+    function getLocalDateString() {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function getPreviousMonth(yearMonthStr) {
+      if (!yearMonthStr || !yearMonthStr.includes('-')) return '';
+      const parts = yearMonthStr.split('-');
+      let year = parseInt(parts[0]);
+      let month = parseInt(parts[1]);
+      
+      month--;
+      if (month === 0) {
+        month = 12;
+        year--;
+      }
+      return `${year}-${String(month).padStart(2, '0')}`;
+    }
+    
+    // สถานะหลักของแอปพลิเคชัน (Global Application State)
+    const state = {
+      isMockMode: false,
+      currentView: 'login', // login, recorder, admin, report
+      currentUser: null,    // { username, fullName, role }
+      buildings: [],        // [{ id, name, meterNo, status }]
+      latestReadings: {},   // { [buildingName]: { lastMeterValue, lastDate } }
+      allReadings: [],      // [{ buildingName, currentMeter, date }]
+      currentMonthReadings: [], // [{ buildingName, date }]
+      adminDashboardData: null,
+      tempReading: null,    // ข้อมูลรอการกดยืนยันเซฟ
+      compressedPhotoBase64: "" // รูปภาพบีบอัดแล้ว
+    };
+
+    let lineChart = null;
+    let pieChart = null;
+    let allBuildingsCompareChart = null;
+    let individualBuildingChart = null;
+
+    // --------------------------------------------------------------------------
+    // 9.2 ฟังก์ชันดึงองค์ประกอบ DOM (DOM Selectors)
+    // --------------------------------------------------------------------------
+    const views = {
+      login: document.getElementById('view-login'),
+      recorder: document.getElementById('view-recorder'),
+      billing: document.getElementById('view-billing'), // New Billing view!
+      admin: document.getElementById('view-admin'),
+      report: document.getElementById('view-report')
+    };
+
+    const header = document.getElementById('main-header');
+    const profileName = document.getElementById('profile-name');
+    const profileRole = document.getElementById('profile-role');
+    const logoutBtn = document.getElementById('logout-btn');
+    
+    // --------------------------------------------------------------------------
+    // 9.3 ระบบจำลองฐานข้อมูลไคลเอนต์ (LocalStorage Mock Database)
+    // --------------------------------------------------------------------------
+    function initMockDatabase() {
+      // 1. ตรวจสอบว่ามีผู้ใช้อย่างน้อยหนึ่งคน และตรวจสอบสิทธิ์ของผู้ใช้เพื่อความสมบูรณ์
+      let users = [];
+      try {
+        users = JSON.parse(localStorage.getItem('MOCK_USERS') || '[]');
+      } catch (e) {}
+      
+      const hasAdmin = users.some(u => u.username === 'admin');
+      const hasStaff = users.some(u => u.username === 'staff');
+      const hasBilling = users.some(u => u.username === 'billing');
+      
+      if (!hasAdmin || !hasStaff || !hasBilling || users.length === 0) {
+        users = [
+          { username: "admin", password: "admin1234", fullName: "ผู้ดูแลระบบ อพ.สธ. (จำลอง)", role: "admin" },
+          { username: "staff", password: "staff1234", fullName: "เจ้าหน้าที่บันทึกข้อมูล (จำลอง)", role: "recorder" },
+          { username: "billing", password: "billing1234", fullName: "เจ้าหน้าที่เก็บค่าไฟฟ้า (จำลอง)", role: "billing" }
+        ];
+        localStorage.setItem('MOCK_USERS', JSON.stringify(users));
+      }
+      
+      // 2. ตรวจสอบและเตรียมตาราง Buildings (ตึกจริงเท่านั้น)
+      let buildings = [];
+      try {
+        buildings = JSON.parse(localStorage.getItem('MOCK_BUILDINGS') || '[]');
+      } catch (e) {}
+      
+      const realBuildingsTheme = [
+        { id: "B001", name: "อาคาร เพาะเลี้ยงเนื้อเยื่อ ห้องใหญ่", meterNo: "MTR-001", status: "active" },
+        { id: "B002", name: "อาคาร เพาะเลี้ยงเนื้อเยื่อ ห้องเล็ก", meterNo: "MTR-002", status: "active" },
+        { id: "B003", name: "อาคาร เพาะเลี้ยงเนื้อเยื่อเล็ก 1", meterNo: "MTR-003", status: "active" },
+        { id: "B004", name: "อาคาร เพาะเลี้ยงเนื้อเยื่อเล็ก 2", meterNo: "MTR-004", status: "active" },
+        { id: "B005", name: "อาคาร ผลิตชา", meterNo: "MTR-005", status: "active" }
+      ];
+      
+      let readings = [];
+      try {
+        readings = JSON.parse(localStorage.getItem('MOCK_READINGS') || '[]');
+      } catch (e) {}
+      
+      // หากไม่มีตึกเลย หรือมีชื่อตึกจากเทมเพลตเก่าปะปนอยู่ ให้ล้างข้อมูลเพื่ออิงตามตึกจริง 5 ตึกเท่านั้น
+      const hasOldTemplate = buildings.some(b => 
+        b.name.includes("ฟิสิกส์") || 
+        b.name === "ตึกวิจัย อพ.สธ. 1" || 
+        b.name === "อาคารนิทรรศการหลัก" || 
+        b.name === "สำนักงานบริหารโครงการ"
+      );
+      
+      if (buildings.length === 0 || hasOldTemplate) {
+        localStorage.setItem('MOCK_BUILDINGS', JSON.stringify(realBuildingsTheme));
+        buildings = realBuildingsTheme;
+        localStorage.removeItem('MOCK_READINGS');
+        readings = [];
+      }
+      
+      // หากยังไม่มีข้อมูลประวัติการบันทึกเลย ให้จำลองข้อมูลเบื้องต้นแบบมีลอจิกความต่อเนื่อง
+      if (readings.length === 0) {
+        // ใช้ฟังก์ชัน backfill ในการสร้างชุดข้อมูลจดจำลองรอบแรกสุดเพื่อไม่ให้ฐานข้อมูลว่างเปล่า
+        const backfilled = backfillHistoricalReadings(buildings, [], true);
+        localStorage.setItem('MOCK_READINGS', JSON.stringify(backfilled.allReadings));
+      }
+    }
+
+    // --------------------------------------------------------------------------
+    // 9.3.5 ฟังก์ชันจำลองประวัติค่าไฟย้อนหลังแบบอัตโนมัติอิงตามอาคารจริง
+    // --------------------------------------------------------------------------
+    function backfillHistoricalReadings(buildingsList, existingReadings, isDashboard = false) {
+      // ดึงรายชื่ออาคารที่เปิดใช้งานอยู่ (active) เท่านั้นสำหรับการทำจำลองและบันทึก
+      const activeBuildings = (buildingsList || []).filter(b => b.status && b.status.toString().trim().toLowerCase() === 'active');
+      
+      // กรองประวัติการบันทึกเดิมให้เหลือเฉพาะตึกที่ยังเปิดใช้งานอยู่ (active) เท่านั้น
+      const activeNames = new Set(activeBuildings.map(b => b.name.trim()));
+      const filteredExisting = (existingReadings || []).filter(r => {
+        const name = (r.buildingName || "").trim();
+        return activeNames.has(name);
+      });
+      
+      const allReadings = [...filteredExisting];
+      
+      // ระบุปี-เดือนของรอบบันทึก 4 เดือน (ย้อนหลัง 3 เดือน + เดือนปัจจุบัน)
+      const now = new Date();
+      const d3 = new Date(now.getFullYear(), now.getMonth() - 3, 25);
+      const d2 = new Date(now.getFullYear(), now.getMonth() - 2, 25);
+      const d1 = new Date(now.getFullYear(), now.getMonth() - 1, 25);
+      const dCurrent = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      
+      const m3_str = d3.toISOString().split('T')[0];
+      const m2_str = d2.toISOString().split('T')[0];
+      const m1_str = d1.toISOString().split('T')[0];
+      const mCurrent_str = dCurrent.toISOString().split('T')[0];
+      
+      const m3_ym = m3_str.substring(0, 7);
+      const m2_ym = m2_str.substring(0, 7);
+      const m1_ym = m1_str.substring(0, 7);
+      const mCurrent_ym = mCurrent_str.substring(0, 7);
+      
+      const targetMonths = [
+        { ym: m3_ym, dateStr: m3_str, dateObj: d3, key: 'm3' },
+        { ym: m2_ym, dateStr: m2_str, dateObj: d2, key: 'm2' },
+        { ym: m1_ym, dateStr: m1_str, dateObj: d1, key: 'm1' },
+        { ym: mCurrent_ym, dateStr: mCurrent_str, dateObj: dCurrent, key: 'mCurrent' }
+      ];
+      
+      // ดำเนินการจำลองข้อมูลสำหรับแต่ละอาคารที่มีสถานะเปิดใช้งาน (active)
+      activeBuildings.forEach((b, index) => {
+        const bName = b.name.trim();
+        
+        // กำหนดค่าตั้งต้นในการจำลอง: อัตราค่าไฟ และค่ามิเตอร์เริ่มต้นที่แตกต่างกันในแต่ละอาคาร
+        // อัตราค่าไฟฟ้าเฉลี่ย 4.0 - 6.0 บาท/หน่วย
+        const rate = 4.0 + (index % 5) * 0.5;
+        // ค่ามิเตอร์แรกเริ่ม (แตกต่างกัน)
+        const basePrev = 1000 + (index * 1500) % 8000;
+        
+        // ปริมาณการใช้ไฟฟ้าเฉลี่ยในแต่ละเดือน (หน่วย)
+        const usages = [
+          150 + (index * 80) % 400,  // m3
+          160 + (index * 85) % 410,  // m2
+          155 + (index * 75) % 390,  // m1
+          165 + (index * 90) % 420   // mCurrent
+        ];
+        
+        // ค้นหาบันทึกจริงรอบแรกสุดของอาคารนี้ เพื่อปรับการจดจำลองของเดือนก่อนหน้าให้มีความต่อเนื่องทางคณิตศาสตร์
+        let firstRealReading = null;
+        let firstRealIdx = -1;
+        
+        for (let mIdx = 0; mIdx < targetMonths.length; mIdx++) {
+          const mInfo = targetMonths[mIdx];
+          const realReading = allReadings.find(r => {
+            const rName = (r.buildingName || "").trim();
+            const rDate = r.date || "";
+            return rName === bName && rDate.substring(0, 7) === mInfo.ym;
+          });
+          if (realReading) {
+            const prevVal = parseFloat(realReading.previousMeter || 0);
+            if (prevVal > 0) {
+              firstRealReading = realReading;
+              firstRealIdx = mIdx;
+              break;
+            }
+          }
+        }
+        
+        let lastCurrentMeter = basePrev;
+        if (firstRealReading) {
+          let startMeter = parseFloat(firstRealReading.previousMeter || 0);
+          for (let i = firstRealIdx - 1; i >= 0; i--) {
+            startMeter -= usages[i];
+          }
+          lastCurrentMeter = startMeter;
+        }
+        
+        // ไล่จำลองข้อมูลทีละเดือนตามลอจิกความต่อเนื่อง
+        targetMonths.forEach((mInfo, mIdx) => {
+          const realReading = allReadings.find(r => {
+            const rName = (r.buildingName || "").trim();
+            const rDate = r.date || "";
+            return rName === bName && rDate.substring(0, 7) === mInfo.ym;
+          });
+          
+          if (realReading) {
+            const currVal = parseFloat(realReading.currentMeter || 0);
+            if (currVal > 0) {
+              lastCurrentMeter = currVal;
+            }
+          } else {
+            // เราจะไม่จำลองข้อมูลสำหรับเดือนปัจจุบันในทุกวิวมุมมอง (รวมถึงแดชบอร์ดแอดมินด้วย) 
+            // เพื่อหลีกเลี่ยงการแสดงค่าไฟจำลองให้กับอาคารหรือบ้านพักบุคลากรที่ยังไม่มีการจดบันทึกเข้ามาจริงในเดือนปัจจุบัน
+            if (mInfo.key === 'mCurrent') {
+              return;
+            }
+            
+            const usage = usages[mIdx];
+            const prevMeter = lastCurrentMeter;
+            const currMeter = prevMeter + usage;
+            const cost = usage * rate;
+            
+            const simulatedRecord = {
+              readingId: `SIM_${mInfo.key}_${b.id || index}`,
+              timestamp: mInfo.dateObj,
+              date: mInfo.dateStr,
+              recorderName: "ระบบจำลองค่าไฟ",
+              recorder: "ระบบจำลองค่าไฟ",
+              buildingName: bName,
+              previousMeter: prevMeter,
+              currentMeter: currMeter,
+              usage: usage,
+              unitRate: rate,
+              rate: rate,
+              calculatedCost: cost,
+              cost: cost,
+              photoUrl: "",
+              status: "confirmed"
+            };
+            
+            allReadings.push(simulatedRecord);
+            lastCurrentMeter = currMeter;
+          }
+        });
+      });
+      
+      // เรียงจากใหม่สุดไปเก่าสุด
+      allReadings.sort((a, b) => new Date(b.date) - new Date(a.date));
+      
+      // คำนวณตารางสถิติต่างๆ สำหรับ Dashboard
+      let totalUsage = 0;
+      let totalCost = 0;
+      const usageByBuilding = {};
+      const monthlySummary = {};
+      
+      allReadings.forEach(r => {
+        const usage = parseFloat(r.usage || 0);
+        let cost = parseFloat(r.cost || 0);
+        
+        // Fallback for dashboard estimation if billing officer hasn't entered rates yet
+        if (isDashboard && (parseFloat(r.rate || 0) === 0 || cost === 0) && usage > 0) {
+          r.rate = 5.0;
+          r.cost = usage * 5.0;
+          cost = r.cost;
+        }
+        
+        totalUsage += usage;
+        totalCost += cost;
+        
+        const name = r.buildingName;
+        if (!usageByBuilding[name]) {
+          usageByBuilding[name] = { usage: 0, cost: 0, count: 0 };
+        }
+        usageByBuilding[name].usage += usage;
+        usageByBuilding[name].cost += cost;
+        usageByBuilding[name].count += 1;
+        
+        const ym = r.date.substring(0, 7);
+        if (!monthlySummary[ym]) {
+          monthlySummary[ym] = { usage: 0, cost: 0 };
+        }
+        monthlySummary[ym].usage += usage;
+        monthlySummary[ym].cost += cost;
+      });
+      
+      // ตรวจจับสิ่งผิดปกติ (Anomaly Detection)
+      const anomalies = [];
+      const buildingHistory = {};
+      
+      allReadings.forEach(r => {
+        if (!buildingHistory[r.buildingName]) {
+          buildingHistory[r.buildingName] = [];
+        }
+        buildingHistory[r.buildingName].push(r);
+      });
+      
+      for (let bKey in buildingHistory) {
+        const history = buildingHistory[bKey];
+        history.sort((a,b) => new Date(a.date) - new Date(b.date));
+        
+        if (history.length >= 2) {
+          const latest = history[history.length - 1].usage;
+          const prevs = history.slice(Math.max(0, history.length - 4), history.length - 1);
+          const sum = prevs.reduce((acc, curr) => acc + curr.usage, 0);
+          const avg = sum / prevs.length;
+          
+          if (avg > 0 && latest > (avg * 1.5) && (latest - avg) > 50) {
+            const percentIncrease = Math.round(((latest - avg) / avg) * 100);
+            anomalies.push({
+              buildingName: bKey,
+              message: `ตึกพบการใช้ไฟสูงขึ้น ${percentIncrease}% จากค่าเฉลี่ยย้อนหลัง ${prevs.length} ครั้ง`,
+              latestUsage: latest,
+              averageUsage: Math.round(avg),
+              percentIncrease: percentIncrease
+            });
+          }
+        }
+      }
+      
+      // คำนวณล่าสุดของแต่ละตึกสำหรับหน้า Recorder
+      const latestReadings = {};
+      allReadings.forEach(r => {
+        const name = r.buildingName;
+        const currentMeter = parseFloat(r.currentMeter || 0);
+        if (!latestReadings[name] || new Date(r.date) > new Date(latestReadings[name].lastDate)) {
+          latestReadings[name] = {
+            lastMeterValue: currentMeter,
+            lastDate: r.date
+          };
+        }
+      });
+      
+      const currentMonthReadings = allReadings
+        .filter(r => r.date.substring(0, 7) === mCurrent_ym)
+        .map(r => ({
+          buildingName: r.buildingName,
+          date: r.date,
+          usage: r.usage,
+          cost: r.cost
+        }));
+        
+      return {
+        allReadings,
+        latestReadings,
+        currentMonthReadings,
+        totalUsage,
+        totalCost,
+        usageByBuilding,
+        monthlySummary,
+        anomalies
+      };
+    }
+
+    // --------------------------------------------------------------------------
+    // 9.4 ฟังก์ชันอำนวยความสะดวก UI (UI Utility Functions)
+    // --------------------------------------------------------------------------
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast-notification');
+      const toastText = document.getElementById('toast-text');
+      
+      toast.className = 'toast'; // reset class
+      toast.classList.add(type);
+      toastText.innerText = message;
+      toast.classList.add('active');
+      
+      setTimeout(() => {
+        toast.classList.remove('active');
+      }, 3500);
+    }
+
+    function switchView(targetView) {
+      // ซ่อนหน้าจอทั้งหมด
+      Object.keys(views).forEach(key => {
+        views[key].classList.add('hidden');
+      });
+      
+      // แสดงหน้าจอที่ต้องการ
+      views[targetView].classList.remove('hidden');
+      state.currentView = targetView;
+      
+      // จัดการ Navigation Header
+      if (targetView === 'login') {
+        header.classList.add('hidden');
+      } else {
+        header.classList.remove('hidden');
+        profileName.innerText = state.currentUser ? state.currentUser.fullName : 'Guest';
+        if (state.currentUser && state.currentUser.role === 'admin') {
+          profileRole.innerText = 'ผู้ดูแลระบบ (Admin)';
+        } else if (state.currentUser && state.currentUser.role === 'billing') {
+          profileRole.innerText = 'เจ้าหน้าที่เก็บค่าไฟฟ้า (Billing)';
+        } else {
+          profileRole.innerText = 'ผู้บันทึกข้อมูล (Recorder)';
+        }
+      }
+      
+      // ล้างค่า Scroll ไปข้างบนสุดของหน้า
+      window.scrollTo(0, 0);
+    }
+
+    // อัพเดทสถานะแถบบนสุด (Top banner connection status)
+    function updateConnectionStatus(isConnected, message) {
+      const dot = document.getElementById('status-dot');
+      const txt = document.getElementById('status-text');
+      const resetBtn = document.getElementById('btn-reset-mock');
+      
+      if (isConnected) {
+        dot.className = 'status-indicator';
+        txt.innerText = message || "เชื่อมต่อระบบคลาวด์ Google Sheet พร้อมใช้งาน";
+        if (resetBtn) resetBtn.classList.add('hidden');
+      } else {
+        dot.className = 'status-indicator offline';
+        txt.innerText = message || "โหมดทดสอบออฟไลน์ (Mock Mode) ข้อมูลถูกจัดเก็บบนเครื่องนี้";
+        if (resetBtn) {
+          resetBtn.classList.remove('hidden');
+          if (!resetBtn.dataset.bound) {
+            resetBtn.dataset.bound = "true";
+            resetBtn.addEventListener('click', () => {
+              if (confirm("คุณแน่ใจหรือไม่ที่จะทำการรีเซ็ตล้างข้อมูลจำลองทั้งหมดกลับเป็นค่าเริ่มต้น? (ข้อมูลบันทึกที่คุณเพิ่มใหม่จะถูกลบออกทั้งหมด)")) {
+                localStorage.removeItem('MOCK_USERS');
+                localStorage.removeItem('MOCK_BUILDINGS');
+                localStorage.removeItem('MOCK_READINGS');
+                sessionStorage.removeItem('CURRENT_USER');
+                showToast("ล้างข้อมูลจำลองสำเร็จ กำลังเปิดระบบใหม่...", "success");
+                setTimeout(() => {
+                  window.location.reload();
+                }, 1000);
+              }
+            });
+          }
+        }
+      }
+    }
+
+    // --------------------------------------------------------------------------
+    // 9.5 ระบบประมวลผลกล้องถ่ายภาพ & บีบอัดภาพ (Camera & Compression)
+    // --------------------------------------------------------------------------
+    const cameraTrigger = document.getElementById('camera-trigger');
+    const cameraFile = document.getElementById('camera-file');
+    const cameraPreview = document.getElementById('camera-preview');
+    const cameraIconGroup = document.getElementById('camera-icon-group');
+    const cameraTextMain = document.getElementById('camera-text-main');
+    const cameraTextSub = document.getElementById('camera-text-sub');
+    const btnRemovePreview = document.getElementById('btn-remove-preview');
+
+    cameraTrigger.addEventListener('click', (e) => {
+      // ถ้าเป้าหมายเป็นปุ่มกากบาทสีแดง ให้กดยกเลิกรูป
+      if (e.target.closest('#btn-remove-preview')) {
+        e.stopPropagation();
+        resetCameraField();
+        return;
+      }
+      cameraFile.click();
+    });
+
+    cameraFile.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      // แสดง Loading ชั่วคราว
+      cameraTextMain.innerText = "กำลังย่อขนาดรูปภาพ...";
+      cameraIconGroup.style.opacity = "0.5";
+      
+      // เริ่มการบีบอัดรูปภาพผ่าน Canvas (Max 800px)
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+          
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // แปลงเป็น Base64 Jpeg คุณภาพ 0.7 (ให้ภาพชัดเจนอ่านมิเตอร์ออกแต่ไฟล์เล็กมาก < 100KB)
+          const base64Url = canvas.toDataURL('image/jpeg', 0.7);
+          state.compressedPhotoBase64 = base64Url;
+          
+          // แสดงตัวอย่างรูปภาพบนหน้าเว็บ
+          cameraPreview.src = base64Url;
+          cameraPreview.style.display = 'block';
+          btnRemovePreview.style.display = 'flex';
+          cameraIconGroup.style.display = 'none';
+          cameraTextMain.style.display = 'none';
+          cameraTextSub.style.display = 'none';
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+
+    function resetCameraField() {
+      cameraFile.value = "";
+      state.compressedPhotoBase64 = "";
+      cameraPreview.src = "";
+      cameraPreview.style.display = 'none';
+      btnRemovePreview.style.display = 'none';
+      cameraIconGroup.style.display = 'block';
+      cameraTextMain.style.display = 'block';
+      cameraTextSub.style.display = 'block';
+      cameraTextMain.innerText = "กดเพื่อเปิดกล้องมือถือถ่ายภาพ / แนบรูปภาพ";
+      cameraIconGroup.style.opacity = "1";
+    }
+
+    // --------------------------------------------------------------------------
+    // 9.6 ฟังก์ชันเชื่อมต่อกับ API หลังบ้าน (API Integrations)
+    // --------------------------------------------------------------------------
+    
+    // ตรวจสอบเบื้องต้นว่า API URL ได้รับการตั้งค่าแล้วหรือยัง
+    function checkApiConfig() {
+      if (!API_URL || API_URL === "ใส่_Web_App_URL_ตรงนี้" || API_URL.trim() === "") {
+        state.isMockMode = true;
+        initMockDatabase();
+        updateConnectionStatus(false);
+      }
+    }
+
+    async function callAPI(action, payload = {}) {
+      if (state.isMockMode) {
+        return handleMockRequest(action, payload);
+      }
+      
+      try {
+        const url = new URL(API_URL);
+        url.searchParams.append('action', action);
+        
+        const fetchOptions = {
+          method: 'POST',
+          mode: 'cors',
+          redirect: 'follow',
+          body: JSON.stringify(payload)
+        };
+        
+        const response = await fetch(url, fetchOptions);
+        if (!response.ok) throw new Error("HTTP error " + response.status);
+        const data = await response.json();
+        
+        // อัปเดตสถานะการต่อสำเร็จ
+        updateConnectionStatus(true);
+        return data;
+      } catch (err) {
+        console.error("API Error, switching to mock mode:", err);
+        state.isMockMode = true;
+        initMockDatabase();
+        updateConnectionStatus(false, "สลับเป็นโหมดจำลองในเครื่องเนื่องจากติดต่อ Google Sheet ล้มเหลว");
+        // ยิงซ้ำใน mock
+        return handleMockRequest(action, payload);
+      }
+    }
+
+    // การจำลองการทำงานเหมือนสคริปต์หลังบ้านบน Google Sheets (Client-side Mock API handler)
+    function handleMockRequest(action, payload) {
+      console.log(`[Mock API Request] Action: ${action}`, payload);
+      
+      const mockUsers = JSON.parse(localStorage.getItem('MOCK_USERS') || '[]');
+      const mockBuildings = JSON.parse(localStorage.getItem('MOCK_BUILDINGS') || '[]');
+      const mockReadings = JSON.parse(localStorage.getItem('MOCK_READINGS') || '[]');
+      
+      switch (action) {
+        case 'login':
+          const user = mockUsers.find(u => u.username.toLowerCase() === payload.username.trim().toLowerCase() && u.password === payload.password);
+          if (user) {
+            return { success: true, user: { username: user.username, fullName: user.fullName, role: user.role } };
+          }
+          return { success: false, error: "ชื่อผู้ใช้งานหรือรหัสผ่านจำลองไม่ถูกต้อง" };
+          
+        case 'getInitialData':
+          // ดึงประวัติล่าสุดเพื่อหาค่ามิเตอร์ก่อนหน้า
+          const latestReadings = {};
+          const allReadings = [];
+          
+          mockReadings.forEach(r => {
+            allReadings.push({
+              readingId: r.readingId,
+              buildingName: r.buildingName,
+              previousMeter: parseFloat(r.previousMeter || 0),
+              currentMeter: parseFloat(r.currentMeter || 0),
+              usage: parseFloat(r.usage || 0),
+              rate: parseFloat(r.unitRate || 0),
+              cost: parseFloat(r.calculatedCost || 0),
+              date: r.date,
+              isRateSet: r.isRateSet || false
+            });
+            latestReadings[r.buildingName] = {
+              lastMeterValue: r.currentMeter,
+              lastDate: r.date
+            };
+          });
+          
+          // ดึงรายการบันทึกของเดือนปัจจุบัน
+          const now = new Date();
+          const currentYearMonth = now.getFullYear() + "-" + ("0" + (now.getMonth() + 1)).slice(-2);
+          const currentMonthReadings = mockReadings
+            .filter(r => r.date.substring(0, 7) === currentYearMonth)
+            .map(r => ({
+              buildingName: r.buildingName,
+              date: r.date,
+              usage: r.usage,
+              cost: r.calculatedCost
+            }));
+            
+          return {
+            success: true,
+            buildings: mockBuildings.filter(b => b.status === 'active'),
+            latestReadings: latestReadings,
+            allReadings: allReadings,
+            currentMonthReadings: currentMonthReadings
+          };
+          
+        case 'saveReading':
+          const newId = "RD" + Math.floor(100000 + Math.random() * 900000);
+          const newRecord = {
+            readingId: newId,
+            timestamp: new Date(),
+            date: payload.date,
+            recorderName: payload.recorderName,
+            buildingName: payload.buildingName,
+            previousMeter: parseFloat(payload.previousMeter || 0),
+            currentMeter: parseFloat(payload.currentMeter || 0),
+            usage: parseFloat(payload.usage || 0),
+            unitRate: parseFloat(payload.unitRate || 0),
+            calculatedCost: parseFloat(payload.calculatedCost || 0),
+            photoUrl: payload.photoData ? payload.photoData : "", // ใน Mock Mode จะเก็บ base64 สั้นๆ
+            status: "confirmed"
+          };
+          
+          mockReadings.push(newRecord);
+          localStorage.setItem('MOCK_READINGS', JSON.stringify(mockReadings));
+          return { success: true, readingId: newId, photoUrl: newRecord.photoUrl };
+          
+        case 'addBuilding':
+          const name = payload.buildingName.trim();
+          if (mockBuildings.some(b => b.name.toLowerCase() === name.toLowerCase() && b.status === 'active')) {
+            return { success: false, error: "ชื่ออาคารจำลองนี้มีอยู่แล้ว" };
+          }
+          const id = "B" + ("00" + (mockBuildings.length + 1)).slice(-3);
+          mockBuildings.push({ id: id, name: name, meterNo: payload.meterNo || "-", status: "active" });
+          localStorage.setItem('MOCK_BUILDINGS', JSON.stringify(mockBuildings));
+          return { success: true, message: "เพิ่มอาคารจำลองเรียบร้อยแล้ว" };
+          
+        case 'toggleBuilding':
+          const b = mockBuildings.find(item => item.name === payload.buildingName);
+          if (b) {
+            b.status = payload.status;
+            localStorage.setItem('MOCK_BUILDINGS', JSON.stringify(mockBuildings));
+            return { success: true };
+          }
+          return { success: false, error: "ไม่พบชื่ออาคารจำลอง" };
+          
+        case 'editBuilding':
+          const oldName = payload.oldName;
+          const newName = payload.newName.trim();
+          const newMeterNo = payload.newMeterNo.trim();
+          
+          if (newName.toLowerCase() !== oldName.toLowerCase() && 
+              mockBuildings.some(item => item.name.toLowerCase() === newName.toLowerCase() && item.status === 'active')) {
+            return { success: false, error: "ชื่ออาคารใหม่นี้ซ้ำกับอาคารอื่นในระบบ" };
+          }
+          
+          const targetB = mockBuildings.find(item => item.name === oldName);
+          if (targetB) {
+            targetB.name = newName;
+            targetB.meterNo = newMeterNo;
+            localStorage.setItem('MOCK_BUILDINGS', JSON.stringify(mockBuildings));
+            
+            // ปรับปรุงในประวัติการบันทึกทั้งหมดด้วยเพื่อรักษาความเชื่อมโยงข้อมูล
+            mockReadings.forEach(r => {
+              if (r.buildingName === oldName) {
+                r.buildingName = newName;
+              }
+            });
+            localStorage.setItem('MOCK_READINGS', JSON.stringify(mockReadings));
+            return { success: true, message: "แก้ไขข้อมูลอาคารจำลองสำเร็จ" };
+          }
+          return { success: false, error: "ไม่พบชื่ออาคารจำลองที่ต้องการแก้ไข" };
+          
+        case 'saveReadingRates':
+          const ratesList = payload.ratesList || [];
+          let updatedCount = 0;
+          ratesList.forEach(rateItem => {
+            const rId = rateItem.readingId;
+            const rate = parseFloat(rateItem.unitRate || 0);
+            const cost = parseFloat(rateItem.calculatedCost || 0);
+            
+            let r = mockReadings.find(item => item.readingId === rId);
+            if (r) {
+              r.unitRate = rate;
+              r.calculatedCost = cost;
+              r.isRateSet = true;
+              updatedCount++;
+            } else if (rId && rId.startsWith('SIM_')) {
+              // Reconstruct simulated reading and push to mockReadings so it becomes persistent
+              const stateR = state.allReadings.find(item => item.readingId === rId);
+              if (stateR) {
+                r = {
+                  readingId: rId,
+                  timestamp: stateR.timestamp || new Date(),
+                  date: stateR.date,
+                  recorderName: stateR.recorderName || "ระบบจำลองค่าไฟ",
+                  recorder: stateR.recorder || "ระบบจำลองค่าไฟ",
+                  buildingName: stateR.buildingName,
+                  previousMeter: parseFloat(stateR.previousMeter || 0),
+                  currentMeter: parseFloat(stateR.currentMeter || 0),
+                  usage: parseFloat(stateR.usage || 0),
+                  unitRate: rate,
+                  calculatedCost: cost,
+                  photoUrl: "",
+                  status: "confirmed",
+                  isRateSet: true
+                };
+                mockReadings.push(r);
+                updatedCount++;
+              }
+            }
+          });
+          localStorage.setItem('MOCK_READINGS', JSON.stringify(mockReadings));
+          return { success: true, message: "บันทึกอัตราค่าไฟฟ้าสำเร็จ " + updatedCount + " รายการ", updatedCount: updatedCount };
+          
+        case 'getAdminDashboard':
+          let totalUsage = 0;
+          let totalCost = 0;
+          const usageByBuilding = {};
+          const monthlySummary = {};
+          
+          mockReadings.forEach(r => {
+            const usage = r.usage;
+            const cost = r.calculatedCost;
+            totalUsage += usage;
+            totalCost += cost;
+            
+            // แยกรายอาคาร
+            if (!usageByBuilding[r.buildingName]) {
+              usageByBuilding[r.buildingName] = { usage: 0, cost: 0, count: 0 };
+            }
+            usageByBuilding[r.buildingName].usage += usage;
+            usageByBuilding[r.buildingName].cost += cost;
+            usageByBuilding[r.buildingName].count += 1;
+            
+            // แยกรายเดือน YYYY-MM
+            const ym = r.date.substring(0, 7);
+            if (!monthlySummary[ym]) {
+              monthlySummary[ym] = { usage: 0, cost: 0 };
+            }
+            monthlySummary[ym].usage += usage;
+            monthlySummary[ym].cost += cost;
+          });
+          
+          // ตรวจจับสิ่งผิดปกติ (Anomaly Detection)
+          const anomalies = [];
+          const buildingHistory = {};
+          
+          // เรียงเก่าไปใหม่
+          mockReadings.forEach(r => {
+            if (!buildingHistory[r.buildingName]) {
+              buildingHistory[r.buildingName] = [];
+            }
+            buildingHistory[r.buildingName].push(r);
+          });
+          
+          for (let bKey in buildingHistory) {
+            const history = buildingHistory[bKey];
+            history.sort((a,b) => new Date(a.date) - new Date(b.date));
+            
+            if (history.length >= 2) {
+              const latest = history[history.length - 1].usage;
+              const prevs = history.slice(Math.max(0, history.length - 4), history.length - 1);
+              const sum = prevs.reduce((acc, curr) => acc + curr.usage, 0);
+              const avg = sum / prevs.length;
+              
+              if (avg > 0 && latest > (avg * 1.5) && (latest - avg) > 50) {
+                const percentIncrease = Math.round(((latest - avg) / avg) * 100);
+                anomalies.push({
+                  buildingName: bKey,
+                  message: `[MOCK ALERT] ตึกพบการใช้ไฟสูงขึ้น ${percentIncrease}% จากค่าเฉลี่ยย้อนหลัง ${prevs.length} ครั้ง`,
+                  latestUsage: latest,
+                  averageUsage: Math.round(avg),
+                  percentIncrease: percentIncrease
+                });
+              }
+            }
+          }
+          
+          // เรียงข้อมูลแสดงผลตารางตามวันล่าสุดขึ้นก่อน และแมป cost ให้ครบถ้วน
+          const sortedHistory = [...mockReadings]
+            .map(r => ({
+              ...r,
+              cost: r.calculatedCost !== undefined ? r.calculatedCost : 0
+            }))
+            .sort((a,b) => new Date(b.date) - new Date(a.date));
+          
+          return {
+            success: true,
+            totalUsage: totalUsage,
+            totalCost: totalCost,
+            allBuildings: mockBuildings,
+            recentRecords: sortedHistory,
+            usageByBuilding: usageByBuilding,
+            monthlySummary: monthlySummary,
+            anomalies: anomalies
+          };
+          
+        default:
+          return { success: false, error: "Action error" };
+      }
+    }
+
+    // --------------------------------------------------------------------------
+    // 9.7 ระบบบันทึกข้อมูลฝ่ายผู้บันทึก (Recorder View Controllers)
+    // --------------------------------------------------------------------------
+    
+    // ตั้งค่าวันปัจจุบันให้เป็นค่าเริ่มต้นใน Date picker
+    const recordDate = document.getElementById('record-date');
+    const recordBuilding = document.getElementById('record-building');
+    const recordPrevMeter = document.getElementById('record-prev-meter');
+    const recordCurrMeter = document.getElementById('record-curr-meter');
+    const calcUsage = document.getElementById('calc-usage');
+    const calcCost = document.getElementById('calc-cost');
+    const prevBadge = document.getElementById('prev-badge');
+    const recordForm = document.getElementById('record-form');
+
+    // โหลดข้อมูลพื้นฐานอาคารเมื่อเริ่มทำงาน
+    // โหลดข้อมูลพื้นฐานอาคารเมื่อเริ่มทำงาน
+    async function loadRecorderViewData() {
+      // ดึงข้อมูลผ่าน API
+      const result = await callAPI('getInitialData');
+      
+      if (result.success) {
+        state.buildings = result.buildings;
+        
+        // ปรับปรุงประวัติบันทึกย้อนหลังแบบจำลองอิงอาคารจริง
+        const backfilled = backfillHistoricalReadings(state.buildings, result.allReadings || [], false);
+        state.allReadings = backfilled.allReadings;
+        state.latestReadings = backfilled.latestReadings;
+        state.currentMonthReadings = backfilled.currentMonthReadings;
+        
+        // เคลียร์และสร้างตัวเลือก Dropdown อาคาร
+        recordBuilding.innerHTML = '<option value="" disabled selected>-- เลือกอาคาร --</option>';
+        state.buildings.forEach(b => {
+          const opt = document.createElement('option');
+          opt.value = b.name;
+          opt.innerText = `${b.name} (${b.meterNo})`;
+          recordBuilding.appendChild(opt);
+        });
+        
+        // ติ๊กเลือกราคาต่อหน่วยล่าสุดที่เคยบันทึกไว้ (Persistent Unit Rate)
+        const savedRate = localStorage.getItem('DEFAULT_UNIT_RATE');
+        if (savedRate) {
+          const radio = document.querySelector(`input[name="unit-rate"][value="${savedRate}"]`);
+          if (radio) {
+            radio.checked = true;
+          }
+        }
+        
+        // อัปเดตตัวเลือกในกล่องแก้ไขอาคารด้วย
+        updateModalEditDropdown();
+        
+        // อัปเดตเช็คลิสต์ด้านข้าง
+        renderChecklist();
+        renderRecorderMainMeterComparison();
+      } else {
+        showToast("ไม่สามารถดึงข้อมูลอาคารได้: " + result.error, "error");
+      }
+    }
+
+    // ค้นหาและคำนวณค่ามิเตอร์ครั้งก่อนหน้าตามวันที่เลือก
+    function updatePreviousMeterValue() {
+      const selectedB = recordBuilding.value;
+      const dateVal = recordDate.value;
+      if (!selectedB || !dateVal) {
+        recordPrevMeter.value = 0;
+        recordPrevMeter.readOnly = false;
+        prevBadge.classList.add('hidden');
+        return;
+      }
+      
+      // ค้นหาบันทึกข้อมูลตึกนี้ที่เกิดขึ้นก่อนหน้าวันที่เลือก และเป็นข้อมูลล่าสุด
+      let prevReading = null;
+      const targetDate = new Date(dateVal);
+      
+      state.allReadings.forEach(r => {
+        if (r.buildingName === selectedB) {
+          const rDate = new Date(r.date);
+          if (rDate < targetDate) {
+            if (!prevReading || new Date(r.date) > new Date(prevReading.date)) {
+              prevReading = r;
+            }
+          }
+        }
+      });
+      
+      // ตรวจสอบว่าในระบบเคยมีข้อมูลจดบันทึก "จริง" ของอาคารนี้มาก่อนหน้าหรือไม่ (คีย์ไอดีไม่นำหน้าด้วย SIM_)
+      const hasRealReadings = state.allReadings.some(r => 
+        r.buildingName === selectedB && 
+        r.readingId && 
+        !r.readingId.toString().startsWith("SIM_")
+      );
+      
+      if (prevReading) {
+        recordPrevMeter.value = prevReading.currentMeter;
+        
+        if (!hasRealReadings) {
+          // เป็นการบันทึกครั้งแรกของตึกนี้ (ยังมีแต่ประวัติจำลอง) -> เปิดให้กรอก/แก้ไขค่าเริ่มต้นได้เอง
+          recordPrevMeter.readOnly = false;
+          prevBadge.classList.remove('hidden');
+          prevBadge.querySelector('span').innerText = `⚠️ บันทึกครั้งแรก: ค่าจำลองเบื้องต้น สามารถแก้ไขค่ามิเตอร์เริ่มต้นได้`;
+        } else {
+          // เคยมีการบันทึกจริงแล้ว -> ล็อคค่ามิเตอร์เพื่อป้องกันข้อมูลย้อนหลังคลาดเคลื่อน
+          recordPrevMeter.readOnly = true;
+          prevBadge.classList.remove('hidden');
+          prevBadge.querySelector('span').innerText = `อิงตามค่ามิเตอร์เมื่อ: ${prevReading.date}`;
+        }
+      } else {
+        // ไม่มีประวัติใดๆ เลย (รวมถึงจำลองด้วย) -> เปิดให้กรอกเอง
+        recordPrevMeter.value = 0;
+        recordPrevMeter.readOnly = false;
+        prevBadge.classList.add('hidden');
+      }
+      
+      calculateLiveUsage();
+    }
+
+    // เมื่อเลือกอาคาร ดึงค่ามิเตอร์ก่อนหน้านี้โดยอัตโนมัติ
+    recordBuilding.addEventListener('change', updatePreviousMeterValue);
+
+    // คำนวณปริมาณใช้ไฟแบบสด
+    function calculateLiveUsage() {
+      const prev = parseFloat(recordPrevMeter.value || 0);
+      const curr = parseFloat(recordCurrMeter.value || 0);
+      const activeRateRadio = document.querySelector('input[name="unit-rate"]:checked');
+      const rate = activeRateRadio ? parseFloat(activeRateRadio.value) : 4.0;
+      
+      if (curr < prev) {
+        calcUsage.innerText = "0 หน่วย";
+        calcUsage.style.color = "var(--error)";
+        calcCost.innerText = "ค่ามิเตอร์ใหม่น้อยกว่าของเดิม!";
+        calcCost.style.color = "var(--error)";
+        calcCost.style.fontSize = "0.85rem";
+        return;
+      }
+      
+      calcUsage.style.color = "var(--primary)";
+      calcCost.style.color = "var(--primary)";
+      calcCost.style.fontSize = "1.2rem";
+      
+      const usage = curr - prev;
+      const cost = usage * rate;
+      
+      calcUsage.innerText = `${usage.toLocaleString()} หน่วย`;
+      calcCost.innerText = `${cost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} บาท`;
+    }
+
+    // ตรวจสอบการพิมพ์ตัวเลขมิเตอร์ไฟฟ้า หรือการเปลี่ยนเรตราคา
+    recordCurrMeter.addEventListener('input', calculateLiveUsage);
+    recordPrevMeter.addEventListener('input', calculateLiveUsage);
+    document.querySelectorAll('input[name="unit-rate"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        localStorage.setItem('DEFAULT_UNIT_RATE', e.target.value);
+        calculateLiveUsage();
+      });
+    });
+
+    // เมื่อผู้ใช้เปลี่ยนวันที่ใน Date picker ให้ตรวจสอบความสอดคล้องกับเช็คลิสต์และมิเตอร์ก่อนหน้า
+    recordDate.addEventListener('change', () => {
+      updatePreviousMeterValue();
+      renderChecklist();
+      renderRecorderMainMeterComparison();
+    });
+
+    // วาดแสดงสถานะ Checklist การบันทึก
+    function renderChecklist() {
+      const checklistContainer = document.getElementById('building-checklist');
+      const pctBadge = document.getElementById('checklist-pct-badge');
+      const pctFill = document.getElementById('checklist-pct-fill');
+      const summaryText = document.getElementById('checklist-summary-text');
+      
+      checklistContainer.innerHTML = '';
+      if (state.buildings.length === 0) {
+        summaryText.innerText = "ไม่มีจุดอาคารเปิดใช้งาน";
+        return;
+      }
+      
+      // ดึงปี-เดือนจากหน้า Date picker
+      const selectedDate = recordDate.value || getLocalDateString();
+      const yearMonth = selectedDate.substring(0, 7); // YYYY-MM
+      
+      let doneCount = 0;
+      
+      state.buildings.forEach(b => {
+        // เช็คว่าตึกนี้บันทึกเสร็จในเดือนนี้หรือยัง
+        const isDone = state.currentMonthReadings.some(r => r.buildingName === b.name && r.date.substring(0, 7) === yearMonth);
+        if (isDone) doneCount++;
+        
+        const li = document.createElement('li');
+        li.className = `checklist-item ${isDone ? 'done' : ''}`;
+        
+        li.innerHTML = `
+          <span>🏢 ${b.name}</span>
+          <span class="status-badge ${isDone ? 'done' : 'pending'}">
+            ${isDone ? '✓ บันทึกแล้ว' : '⌛ ยังไม่บันทึก'}
+          </span>
+        `;
+        checklistContainer.appendChild(li);
+      });
+      
+      const pct = Math.round((doneCount / state.buildings.length) * 100);
+      pctBadge.innerText = `${pct}%`;
+      pctFill.style.width = `${pct}%`;
+      
+      if (doneCount === state.buildings.length) {
+        summaryText.innerHTML = `<b style="color: var(--success);">🎉 ยอดเยี่ยม! บันทึกครบถ้วนทั้ง ${state.buildings.length} อาคารแล้ว</b>`;
+      } else {
+        summaryText.innerText = `บันทึกแล้ว ${doneCount} จากทั้งหมด ${state.buildings.length} อาคาร`;
+      }
+    }
+
+    function renderRecorderMainMeterComparison() {
+      const container = document.getElementById('recorder-comparison-container');
+      if (!container) return;
+      
+      const selectedDate = recordDate.value || getLocalDateString();
+      const yearMonth = selectedDate.substring(0, 7); // YYYY-MM
+      
+      // แปลงปี-เดือนเป็นภาษาไทย
+      const parts = yearMonth.split('-');
+      const yearTH = parseInt(parts[0]) + 543;
+      const monthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+      const monthText = `${monthNames[parseInt(parts[1])-1]} ${yearTH}`;
+      
+      // คำนวณปริมาณใช้ไฟของทุกตึกรวมกันในเดือนที่เลือก
+      const readings = state.allReadings.filter(r => r.date && r.date.substring(0, 7) === yearMonth);
+      let totalUsage = 0;
+      state.buildings.forEach(b => {
+        const reading = readings.find(r => r.buildingName === b.name);
+        if (reading) {
+          totalUsage += parseFloat(reading.usage || 0);
+        }
+      });
+      
+      const prevMonth = getPreviousMonth(yearMonth);
+      const prevKey = `main_meter_prev_${yearMonth}`;
+      const currKey = `main_meter_curr_${yearMonth}`;
+      
+      const savedPrev = localStorage.getItem(prevKey) || '';
+      const prevFallback = localStorage.getItem(`main_meter_curr_${prevMonth}`) || '';
+      const displayPrevVal = savedPrev !== '' ? savedPrev : prevFallback;
+      const displayCurrVal = localStorage.getItem(currKey) || '';
+      
+      function getComparisonHtml(prevVal, currVal) {
+        if (prevVal === '' || currVal === '') {
+          return `
+            <div style="margin-top: 15px; padding: 15px; border-radius: 12px; background-color: rgba(142, 131, 203, 0.04); border: 1px dashed var(--border-color); color: var(--text-muted); font-size: 0.85rem; text-align: center;">
+              💡 กรอกเลขมิเตอร์กลางของศูนย์ครั้งก่อนและครั้งนี้เพื่อคำนวณและวิเคราะห์ผลต่างระบบไฟฟ้ารายเดือน
+            </div>
+          `;
+        }
+        
+        const prevMeter = parseFloat(prevVal);
+        const currMeter = parseFloat(currVal);
+        const billUnitsVal = currMeter - prevMeter;
+        
+        if (isNaN(billUnitsVal) || billUnitsVal < 0) {
+          return `
+            <div style="margin-top: 15px; padding: 15px; border-radius: 12px; background-color: rgba(239, 68, 68, 0.04); border: 1px dashed rgba(239, 68, 68, 0.3); color: var(--error); font-size: 0.85rem; text-align: center;">
+              ⚠️ เลขมิเตอร์ไม่ถูกต้อง (เลขมิเตอร์กลางของศูนย์ครั้งนี้ต้องมากกว่าหรือเท่ากับครั้งก่อน)
+            </div>
+          `;
+        }
+        
+        const diff = billUnitsVal - totalUsage;
+        const diffPct = billUnitsVal > 0 ? (diff / billUnitsVal * 100) : 0;
+        
+        let statusColor = 'var(--success)';
+        let statusBg = 'rgba(16, 185, 129, 0.04)';
+        let statusBorder = '1px solid rgba(16, 185, 129, 0.2)';
+        let statusText = `✅ ผลรวมหน่วยไฟฟ้าใกล้เคียงสอดคล้องตามเกณฑ์`;
+        
+        if (Math.abs(diffPct) >= 3.0) {
+          statusColor = 'var(--error)';
+          statusBg = 'rgba(239, 68, 68, 0.04)';
+          statusBorder = '1px dashed rgba(239, 68, 68, 0.3)';
+          statusText = `⚠️ ตรวจพบความคลาดเคลื่อนเกินเกณฑ์ (ส่วนต่างผิดปกติ)`;
+        } else if (Math.abs(diffPct) > 0) {
+          statusColor = 'var(--warning)';
+          statusBg = 'rgba(245, 158, 11, 0.04)';
+          statusBorder = '1px dashed rgba(245, 158, 11, 0.3)';
+          statusText = `⚠️ ตรวจพบส่วนสูญเสียหรือความต่างเล็กน้อยในระบบ`;
+        }
+        
+        return `
+          <div style="margin-top: 15px; padding: 15px; border-radius: 12px; background-color: ${statusBg}; border: ${statusBorder}; color: var(--text-main); font-size: 0.85rem; display: flex; flex-direction: column; gap: 8px;">
+            <div style="font-weight: 600; color: ${statusColor}; display: flex; align-items: center; gap: 6px;">
+              <span>${statusText}</span>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 5px;">
+              <div>มิเตอร์กลางของศูนย์: <b style="color: var(--text-main); font-size: 0.9rem;">${prevMeter.toLocaleString()} → ${currMeter.toLocaleString()}</b></div>
+              <div>ยอดหน่วยบิลกลาง (คำนวณ): <b style="color: var(--primary); font-size: 0.95rem;">${billUnitsVal.toLocaleString()}</b> หน่วย</div>
+              <div>ผลรวมจดบันทึกทุกอาคาร: <b style="color: var(--primary); font-size: 0.95rem;">${totalUsage.toLocaleString()}</b> หน่วย</div>
+              <div>ส่วนต่าง (บิลกลาง - ผลรวมอาคาร): <b style="color: ${statusColor}; font-size: 0.95rem;">${(diff >= 0 ? '+' : '')}${diff.toLocaleString()}</b> หน่วย (${(diffPct >= 0 ? '+' : '')}${diffPct.toFixed(2)}%)</div>
+            </div>
+          </div>
+        `;
+      }
+      
+      container.innerHTML = `
+        <div class="card fade-in" style="margin-top: 20px;">
+          <div class="card-title">⚡ เปรียบเทียบปริมาณการใช้ไฟฟ้ากับมิเตอร์กลางของศูนย์ ประจำเดือน ${monthText}</div>
+          <div style="display: flex; flex-direction: column; gap: 15px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+              <div class="form-group">
+                <label for="main-meter-prev-input">เลขมิเตอร์กลางของศูนย์ครั้งก่อน (เดือนที่แล้ว)</label>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <input type="number" id="main-meter-prev-input" class="form-control" style="padding-left: 14px;" placeholder="${prevFallback !== '' ? 'ดึงอัตโนมัติ: ' + parseFloat(prevFallback).toLocaleString() : 'ระบุเลขครั้งก่อน'}" value="${savedPrev}">
+                  <span style="font-size: 0.85rem; color: var(--text-muted);">หน่วย</span>
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="main-meter-curr-input">เลขมิเตอร์กลางของศูนย์ครั้งนี้ (เดือนปัจจุบัน)</label>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <input type="number" id="main-meter-curr-input" class="form-control" style="padding-left: 14px;" placeholder="ระบุเลขครั้งนี้" value="${displayCurrVal}">
+                  <span style="font-size: 0.85rem; color: var(--text-muted);">หน่วย</span>
+                </div>
+              </div>
+            </div>
+            <div id="comparison-result-area">
+              ${getComparisonHtml(displayPrevVal, displayCurrVal)}
+            </div>
+          </div>
+        </div>
+      `;
+      
+      const prevInput = document.getElementById('main-meter-prev-input');
+      const currInput = document.getElementById('main-meter-curr-input');
+      
+      function handleComparisonInput() {
+        const pVal = prevInput ? prevInput.value : '';
+        const cVal = currInput ? currInput.value : '';
+        
+        if (prevInput) {
+          if (pVal === '') {
+            localStorage.removeItem(prevKey);
+          } else {
+            localStorage.setItem(prevKey, pVal);
+          }
+        }
+        if (currInput) {
+          if (cVal === '') {
+            localStorage.removeItem(currKey);
+          } else {
+            localStorage.setItem(currKey, cVal);
+          }
+        }
+        
+        const activePrev = pVal !== '' ? pVal : prevFallback;
+        const activeCurr = cVal;
+        
+        const resultArea = document.getElementById('comparison-result-area');
+        if (resultArea) {
+          resultArea.innerHTML = getComparisonHtml(activePrev, activeCurr);
+        }
+      }
+      
+      if (prevInput) prevInput.addEventListener('input', handleComparisonInput);
+      if (currInput) currInput.addEventListener('input', handleComparisonInput);
+    }
+
+    function renderBillingRatesTable() {
+      const container = document.getElementById('billing-rates-table-container');
+      if (!container) return;
+      
+      const selectedMonth = document.getElementById('billing-month-select').value;
+      
+      // แปลงปี-เดือนเป็นภาษาไทย
+      const parts = selectedMonth.split('-');
+      const yearTH = parseInt(parts[0]) + 543;
+      const monthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+      const monthText = `${monthNames[parseInt(parts[1])-1]} ${yearTH}`;
+      
+      const readings = state.allReadings.filter(r => r.date.substring(0, 7) === selectedMonth);
+      
+      // Calculate initial grand totals
+      let initialTotalUsage = 0;
+      let initialTotalCost = 0;
+      
+      state.buildings.forEach(b => {
+        const reading = readings.find(r => r.buildingName === b.name);
+        if (reading) {
+          const usage = parseFloat(reading.usage || 0);
+          const isSimulated = reading.readingId && reading.readingId.startsWith('SIM_');
+          const hasRate = reading.isRateSet || (!isSimulated && parseFloat(reading.rate || 0) > 0);
+          const rateVal = hasRate ? parseFloat(reading.rate || 0) : 0;
+          initialTotalUsage += usage;
+          initialTotalCost += (usage * rateVal);
+        }
+      });
+      
+      let html = `
+        <div class="card fade-in" style="margin-bottom: 25px; overflow-x: auto;">
+          <!-- Print-only official header -->
+          <div class="print-only" style="text-align: center; margin-bottom: 25px; border-bottom: 2px solid #000; padding-bottom: 15px;">
+            <h2 style="margin: 0; font-size: 1.4rem; font-weight: 700; color: #000;">รายงานสรุปการใช้ไฟฟ้าและใบเรียกเก็บเงินประจำอาคาร</h2>
+            <h4 style="margin: 5px 0 0 0; font-size: 1.0rem; font-weight: 500; color: #000;">ศูนย์อนุรักษ์พันธุกรรมพืช อพ.สธ. คลองไผ่ มทส.</h4>
+            <p style="margin: 5px 0 0 0; font-size: 0.85rem; color: #000; font-weight: 600;">ประจำรอบเดือน ${monthText}</p>
+          </div>
+
+          <div class="no-print" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 15px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
+            <div style="font-size: 1.1rem; font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="var(--primary)" style="vertical-align: middle;">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10H7v-2h10v2zm0-4H7V7h10v2zm0 8H7v-2h10v2z"/>
+              </svg>
+              <span>📋 ตารางกำหนดอัตราค่าไฟและเรียกเก็บเงิน ประจำเดือน ${monthText}</span>
+            </div>
+            <button class="btn-logout no-print" onclick="window.print()" style="padding: 6px 12px; font-size: 0.8rem; height: auto; border-color: var(--primary-light); color: var(--primary);">
+              🖨️ พิมพ์รายงานเรียกเก็บเงิน
+            </button>
+          </div>
+          
+          <!-- ฟอร์มกรอกอัตราค่าไฟรวมเพื่อคำนวณทั้งหมด -->
+          <div style="margin-bottom: 20px; padding: 15px; background: rgba(124, 58, 237, 0.03); border: 1px solid var(--border-color); border-radius: 12px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;" class="no-print">
+            <div style="font-size: 0.9rem; font-weight: 600; color: var(--text-main);">
+              ⚡ กำหนดราคาหน่วยละกี่บาทสำหรับทุกอาคาร:
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <input type="number" step="0.01" min="0" id="global-rate-input" class="form-control" style="width: 120px; padding: 6px 12px; height: 36px; border-radius: 8px; font-size: 0.85rem; background-color: #FFFFFF;" placeholder="ระบุเรตราคา">
+              <span style="font-size: 0.85rem; color: var(--text-muted);">บาท/หน่วย</span>
+            </div>
+            <button type="button" id="btn-apply-global-rate" class="btn-primary" style="height: 36px; padding: 0 15px; font-size: 0.85rem; border-radius: 8px; background: linear-gradient(135deg, #7C3AED, #5B21B6); border: none; display: flex; align-items: center; justify-content: center;">
+              คำนวณอัตราทุกอาคาร
+            </button>
+          </div>
+
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 28%; text-align: left;">อาคาร / บ้านพัก</th>
+                  <th style="width: 10%; text-align: left;">รหัสมิเตอร์</th>
+                  <th style="width: 11%; text-align: right;">ครั้งก่อน (หน่วย)</th>
+                  <th style="width: 11%; text-align: right;">ครั้งนี้ (หน่วย)</th>
+                  <th style="width: 10%; text-align: right;">ใช้ไป (หน่วย)</th>
+                  <th style="text-align: right; width: 100px;">เรต (บาท)</th>
+                  <th style="text-align: right; width: 120px;">รวมเงิน (บาท)</th>
+                  <th style="text-align: center; width: 160px;">ลงชื่อผู้ชำระเงิน<br><span style="font-size: 0.65rem; font-weight: normal; opacity: 0.8;">(กรณีบ้านพักบุคลากร)</span></th>
+                </tr>
+              </thead>
+              <tbody>
+      `;
+      
+      if (state.buildings.length === 0) {
+        html += `<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 20px;">ไม่มีข้อมูลอาคาร</td></tr>`;
+      } else {
+        state.buildings.forEach((b, index) => {
+          const reading = readings.find(r => r.buildingName === b.name);
+          
+          if (reading) {
+            const usage = parseFloat(reading.usage || 0);
+            const isSimulated = reading.readingId && reading.readingId.startsWith('SIM_');
+            const hasRate = reading.isRateSet || (!isSimulated && parseFloat(reading.rate || 0) > 0);
+            const rateVal = hasRate ? parseFloat(reading.rate || 0) : 0;
+            const currentCost = usage * rateVal;
+            const inputVal = rateVal > 0 ? rateVal : '';
+            
+            const costText = rateVal > 0 ? `฿${currentCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : 'รอคีย์ราคา';
+            const printRateText = rateVal > 0 ? `฿${rateVal.toFixed(2)}` : 'รอระบุ';
+            const printCostText = rateVal > 0 ? `฿${currentCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : 'รอระบุ';
+            
+            html += `
+              <tr data-reading-id="${reading.readingId}" data-usage="${usage}">
+                <td><b>🏢 ${b.name}</b></td>
+                <td><code style="background: rgba(124, 58, 237, 0.05); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; color: var(--primary); font-family: monospace;">${b.meterNo || '-'}</code></td>
+                <td style="text-align: right;">${(reading.previousMeter || 0).toLocaleString()}</td>
+                <td style="text-align: right;">${(reading.currentMeter || 0).toLocaleString()}</td>
+                <td style="text-align: right; color: var(--primary); font-weight: 600;">${usage.toLocaleString()}</td>
+                <td style="text-align: right;">
+                  <span class="print-only print-rate-span">${printRateText}</span>
+                  <input type="number" step="0.01" min="0" class="form-control billing-rate-input no-print" style="width: 100px; text-align: right; display: inline-block; padding: 4px 8px; height: 32px; border-radius: 6px; font-size: 0.85rem; background-color: #FFFFFF;" placeholder="คีย์เรตราคา" value="${inputVal}">
+                </td>
+                <td style="text-align: right; font-weight: 700; color: var(--text-main);" class="billing-cost-cell">
+                  ${costText}
+                </td>
+                <td style="text-align: center; vertical-align: middle;">
+                  <!-- ช่องว่างเว้นสำหรับเซ็นชื่อจ่ายเงิน (กรณีบ้านพักบุคลากร) -->
+                  <div class="print-sig-line" style="font-size: 0.7rem; color: var(--text-muted); border-bottom: 1px dotted rgba(142, 131, 203, 0.4); height: 18px; width: 130px; margin: 0 auto;"></div>
+                  <div style="font-size: 0.65rem; color: var(--text-muted); margin-top: 3px;">(ลงชื่อผู้รับภาระค่าไฟ)</div>
+                </td>
+              </tr>
+            `;
+          } else {
+            // ยังไม่มีการจดมิเตอร์
+            html += `
+              <tr style="opacity: 0.65; background: rgba(0,0,0,0.01);">
+                <td><b>🏢 ${b.name}</b></td>
+                <td><code style="background: rgba(124, 58, 237, 0.05); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; color: var(--text-muted); font-family: monospace;">${b.meterNo || '-'}</code></td>
+                <td style="text-align: right; color: var(--text-muted);">-</td>
+                <td style="text-align: right; color: var(--text-muted);">-</td>
+                <td style="text-align: right; color: var(--text-muted);">-</td>
+                <td style="text-align: right; color: var(--text-muted);">-</td>
+                <td style="text-align: right; color: var(--error); font-weight: 600;">⌛ ยังไม่จดเลข</td>
+                <td style="text-align: center; color: var(--text-muted); font-size: 0.75rem;">-</td>
+              </tr>
+            `;
+          }
+        });
+      }
+      
+      html += `
+              </tbody>
+              <tfoot>
+                <tr style="font-weight: bold; background: rgba(124, 58, 237, 0.04);">
+                  <td colspan="4">รวมทุกอาคาร</td>
+                  <td style="text-align: right; color: var(--primary); font-weight: 700;">${initialTotalUsage.toLocaleString()} หน่วย</td>
+                  <td style="text-align: right;">-</td>
+                  <td style="text-align: right; color: var(--text-main); font-weight: 850;" id="billing-total-cost-all">
+                    ${initialTotalCost > 0 ? '฿' + initialTotalCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) : 'รอคำนวณ'}
+                  </td>
+                  <td></td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          
+          <div style="margin-top: 20px; display: flex; justify-content: flex-end;" class="no-print">
+            <button id="btn-save-billing-rates" class="btn-primary" style="background: linear-gradient(135deg, #7C3AED, #5B21B6); border: none; height: 42px; padding: 0 20px; font-size: 0.9rem; border-radius: 10px; display: flex; align-items: center; gap: 8px;">
+              <span>💾 บันทึกอัตราค่าไฟทั้งหมด</span>
+            </button>
+          </div>
+          
+          <!-- แสดงลายเซ็นเฉพาะตอนสั่งพิมพ์ -->
+          <div class="print-only" style="margin-top: 35px; border-top: 1px dashed #000; padding-top: 20px;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: #000; text-align: center;">
+              <div style="width: 45%;">
+                <div style="font-weight: 600;">เจ้าหน้าที่ผู้สรุปรายงาน (Billing Officer)</div>
+                <div style="margin-top: 35px; border-bottom: 1px dotted #000; width: 80%; margin: 0 auto;"></div>
+                <div style="margin-top: 5px;">(................................................)</div>
+              </div>
+              <div style="width: 45%;">
+                <div style="font-weight: 600;">ผู้อนุมัติรายงาน (Executive)</div>
+                <div style="margin-top: 35px; border-bottom: 1px dotted #000; width: 80%; margin: 0 auto;"></div>
+                <div style="margin-top: 5px;">(................................................)</div>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      `;
+      
+      container.innerHTML = html;
+
+      // Add global rate handler
+      const globalInput = container.querySelector('#global-rate-input');
+      const applyBtn = container.querySelector('#btn-apply-global-rate');
+      if (globalInput && applyBtn) {
+        applyBtn.addEventListener('click', () => {
+          const val = globalInput.value;
+          if (val === '' || isNaN(parseFloat(val))) {
+            showToast("กรุณาระบุเรตราคาไฟฟ้าที่ถูกต้องก่อน", "warning");
+            return;
+          }
+          
+          const rateInputs = container.querySelectorAll('.billing-rate-input');
+          rateInputs.forEach(input => {
+            input.value = val;
+            input.dispatchEvent(new Event('input'));
+          });
+          showToast(`คำนวณเรตราคา ${val} บาท ทุกอาคารเรียบร้อยแล้ว`);
+        });
+      }
+      
+      // Add input change handlers
+      const inputs = container.querySelectorAll('.billing-rate-input');
+      inputs.forEach(input => {
+        input.addEventListener('input', (e) => {
+          const row = e.target.closest('tr');
+          const usage = parseFloat(row.dataset.usage || 0);
+          const rateVal = parseFloat(e.target.value || 0);
+          const costCell = row.querySelector('.billing-cost-cell');
+          const printSpan = row.querySelector('.print-rate-span');
+          
+          if (e.target.value === '' || isNaN(rateVal)) {
+            costCell.innerText = 'รอคีย์ราคา';
+            if (printSpan) printSpan.innerText = 'รอระบุ';
+          } else {
+            const cost = usage * rateVal;
+            costCell.innerText = `฿${cost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            if (printSpan) printSpan.innerText = `฿${rateVal.toFixed(2)}`;
+          }
+          
+          // Recalculate grand totals
+          let grandCost = 0;
+          container.querySelectorAll('tbody tr[data-reading-id]').forEach(r => {
+            const u = parseFloat(r.dataset.usage || 0);
+            const ri = r.querySelector('.billing-rate-input');
+            const rv = ri ? parseFloat(ri.value || 0) : 0;
+            grandCost += (u * rv);
+          });
+          
+          const grandCostCell = container.querySelector('#billing-total-cost-all');
+          if (grandCostCell) {
+            grandCostCell.innerText = grandCost > 0 ? `฿${grandCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : 'รอคำนวณ';
+          }
+        });
+      });
+      
+      // Add Save button click handler
+      const saveBtn = container.querySelector('#btn-save-billing-rates');
+      if (saveBtn) {
+        saveBtn.addEventListener('click', async () => {
+          const rows = container.querySelectorAll('tbody tr[data-reading-id]');
+          const ratesList = [];
+          
+          rows.forEach(row => {
+            const readingId = row.dataset.readingId;
+            const usage = parseFloat(row.dataset.usage || 0);
+            const rateInput = row.querySelector('.billing-rate-input');
+            
+            if (rateInput && rateInput.value !== '') {
+              const rateVal = parseFloat(rateInput.value || 0);
+              ratesList.push({
+                readingId: readingId,
+                unitRate: rateVal,
+                calculatedCost: usage * rateVal
+              });
+            }
+          });
+          
+          if (ratesList.length === 0) {
+            showToast("กรุณาระบุเรตราคาอย่างน้อยหนึ่งอาคารที่มีเลขจดจริงก่อนบันทึก", "warning");
+            return;
+          }
+          
+          saveBtn.disabled = true;
+          const originalText = saveBtn.querySelector('span').innerText;
+          saveBtn.querySelector('span').innerText = "กำลังบันทึกข้อมูล...";
+          
+          const res = await callAPI('saveReadingRates', { ratesList });
+          
+          saveBtn.disabled = false;
+          saveBtn.querySelector('span').innerText = originalText;
+          
+          if (res.success) {
+            showToast("บันทึกอัตราค่าไฟสำเร็จ!");
+            await loadBillingViewData();
+          } else {
+            showToast("ไม่สามารถบันทึกได้: " + res.error, "error");
+          }
+        });
+      }
+    }
+
+    async function loadBillingViewData() {
+      const result = await callAPI('getInitialData');
+      if (result.success) {
+        state.buildings = result.buildings;
+        // Backfill data (without defaulting rates)
+        const backfilled = backfillHistoricalReadings(state.buildings, result.allReadings || [], false);
+        state.allReadings = backfilled.allReadings;
+        state.latestReadings = backfilled.latestReadings;
+        state.currentMonthReadings = backfilled.currentMonthReadings;
+
+        // Populate billing-month-select
+        const monthSelect = document.getElementById('billing-month-select');
+        if (monthSelect) {
+          const lastSelected = monthSelect.value;
+          monthSelect.innerHTML = '';
+          
+          const monthsSet = new Set();
+          state.allReadings.forEach(r => {
+            if (r.date) monthsSet.add(r.date.substring(0, 7));
+          });
+          // Add current month in case it's not present
+          monthsSet.add(getLocalDateString().substring(0, 7));
+          
+          const months = Array.from(monthsSet).sort();
+          months.forEach(m => {
+            const parts = m.split('-');
+            const yearTH = parseInt(parts[0]) + 543;
+            const monthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            const label = `${monthNames[parseInt(parts[1])-1]} ${yearTH}`;
+            
+            const opt = document.createElement('option');
+            opt.value = m;
+            opt.innerText = label;
+            monthSelect.appendChild(opt);
+          });
+          
+          if (lastSelected && months.includes(lastSelected)) {
+            monthSelect.value = lastSelected;
+          } else {
+            monthSelect.value = getLocalDateString().substring(0, 7); // Default to current month
+          }
+        }
+        
+        renderBillingRatesTable();
+      } else {
+        showToast("ไม่สามารถดึงข้อมูลสำหรับเจ้าหน้าที่เก็บค่าไฟได้: " + result.error, "error");
+      }
+    }
+      async function loadAdminDashboardData() {
+      try {
+        const response = await callAPI('getAdminDashboard');
+        
+        if (response.success) {
+          // ปรับปรุงประวัติบันทึกย้อนหลังแบบจำลองอิงอาคารจริงเพื่อสร้างกราฟ
+          const backfilled = backfillHistoricalReadings(response.allBuildings || [], response.recentRecords || [], true);
+          response.recentRecords = backfilled.allReadings;
+          response.totalUsage = backfilled.totalUsage;
+          response.totalCost = backfilled.totalCost;
+          response.usageByBuilding = backfilled.usageByBuilding;
+          response.monthlySummary = backfilled.monthlySummary;
+          response.anomalies = backfilled.anomalies;
+          
+          state.adminDashboardData = response;
+          
+          // 1. อัปเดตข้อมูลจำนวนอาคาร
+          const bCountEl = document.getElementById('admin-stat-buildings-count');
+          if (bCountEl) bCountEl.innerText = (response.allBuildings || []).length;
+          
+          // 2. แสดงรายการ Anomalies (การใช้ไฟผิดปกติ)
+          renderAnomalies(response.anomalies);
+          
+          // 3. ป๊อปปูเลตดรอปดาวน์เลือกเดือนประจำแดชบอร์ด
+          const monthSelectEl = document.getElementById('admin-month-select');
+          if (monthSelectEl) {
+            const lastSelected = monthSelectEl.value;
+            monthSelectEl.innerHTML = '';
+            
+            const months = Object.keys(response.monthlySummary || {}).sort();
+            months.forEach(m => {
+              const parts = m.split('-');
+              const yearTH = parseInt(parts[0]) + 543;
+              const monthNames = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+              const label = `${monthNames[parseInt(parts[1])-1]} ${yearTH}`;
+              
+              const opt = document.createElement('option');
+              opt.value = m;
+              opt.innerText = label;
+              monthSelectEl.appendChild(opt);
+            });
+            
+            if (lastSelected && months.includes(lastSelected)) {
+              monthSelectEl.value = lastSelected;
+            } else if (months.length > 0) {
+              monthSelectEl.value = months[months.length - 1]; // เลือกเดือนล่าสุดเป็นค่าเริ่มต้น
+            }
+            
+            // อัปเดตข้อมูลและกราฟของแดชบอร์ดประจำเดือนที่เลือก
+            if (monthSelectEl.value) {
+              updateAdminDashboardForMonth(monthSelectEl.value);
+            }
+          }
+          
+          // 3.1. ป๊อปปูเลตดรอปดาวน์กราฟวิเคราะห์รายอาคาร
+          const chartSelectEl = document.getElementById('chart-building-select');
+          if (chartSelectEl) {
+            const lastSelected = chartSelectEl.value;
+            chartSelectEl.innerHTML = '';
+            
+            const buildingsMap = new Map();
+            (response.allBuildings || []).forEach(b => {
+              const isBuildingActive = b.status && b.status.toString().trim().toLowerCase() === 'active';
+              if (isBuildingActive) {
+                buildingsMap.set(b.name.trim(), b);
+              }
+            });
+            const activeBuildings = Array.from(buildingsMap.values());
+            activeBuildings.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+            
+            activeBuildings.forEach(b => {
+              const opt = document.createElement('option');
+              opt.value = b.name;
+              opt.innerText = b.name;
+              chartSelectEl.appendChild(opt);
+            });
+            
+            if (lastSelected && activeBuildings.some(b => b.name === lastSelected)) {
+              chartSelectEl.value = lastSelected;
+            } else if (activeBuildings.length > 0) {
+              chartSelectEl.value = activeBuildings[0].name;
+            }
+            
+            // วาดกราฟแยกตึก
+            if (chartSelectEl.value) {
+              renderIndividualBuildingChart(chartSelectEl.value);
+            }
+          }
+          
+          // 4. วาดตารางประวัติบันทึกย้อนหลัง
+          renderHistoryTable(response.recentRecords || []);
+          
+          // 5. แสดงผลการจัดการอาคาร (เพิ่ม/ลบ)
+          renderAdminBuildingsList(response.allBuildings || []);
+        } else {
+          showToast("ไม่สามารถโหลดสถิติแดชบอร์ดได้: " + response.error, "error");
+        }
+      } catch (err) {
+        console.error("Error inside loadAdminDashboardData:", err);
+        showToast("เกิดข้อผิดพลาดในการโหลดแดชบอร์ด: " + err.message, "error");
+      }
+    }
+
+    // แสดงการแจ้งเตือนความผิดปกติ
+    function renderAnomalies(anomalies) {
+      const container = document.getElementById('admin-anomalies-list');
+      container.innerHTML = '';
+      
+      if (anomalies && anomalies.length > 0) {
+        container.classList.remove('hidden');
+        
+        anomalies.forEach(a => {
+          const card = document.createElement('div');
+          card.className = 'anomaly-card';
+          card.innerHTML = `
+            <!-- Warning Triangle SVG -->
+            <svg class="anomaly-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22">
+              <path d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM13 16h-2v2h2v-2zm0-6h-2v4h2v-4z"/>
+            </svg>
+            <div>
+              <div class="anomaly-title">ตรวจพบความผิดปกติที่ ${a.buildingName}</div>
+              <div class="anomaly-text">${a.message}</div>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      } else {
+        container.classList.add('hidden');
+      }
+    }
+
+    function updateAdminDashboardForMonth(selectedMonth) {
+      if (!state.adminDashboardData) return;
+      const data = state.adminDashboardData;
+      
+      // 1. กรองประวัติของเดือนที่เลือก
+      const monthRecords = (data.recentRecords || []).filter(r => r.date.substring(0, 7) === selectedMonth);
+      
+      // 2. คำนวณผลรวมการใช้ไฟและเงินสะสมของเดือนนี้
+      let monthUsage = 0;
+      let monthCost = 0;
+      monthRecords.forEach(r => {
+        monthUsage += (r.usage || 0);
+        monthCost += (r.cost || 0);
+      });
+      
+      const usageEl = document.getElementById('admin-stat-total-usage');
+      const costEl = document.getElementById('admin-stat-total-cost');
+      if (usageEl) usageEl.innerText = Math.round(monthUsage).toLocaleString();
+      if (costEl) costEl.innerText = `฿${Math.round(monthCost).toLocaleString()}`;
+      
+      // 3. วาดกราฟแนวโน้ม (Overall Trend - Line Chart) แสดงผลรวมประวัติของแต่ละเดือน
+      if (typeof Chart !== 'undefined') {
+        if (lineChart) lineChart.destroy();
+        const monthlySummary = data.monthlySummary || {};
+        const months = Object.keys(monthlySummary).sort();
+        const usages = months.map(m => monthlySummary[m].usage);
+        
+        const lineCtx = document.getElementById('chart-monthly-trend').getContext('2d');
+        lineChart = new Chart(lineCtx, {
+          type: 'line',
+          data: {
+            labels: months.map(m => {
+              const parts = m.split('-');
+              const yearStr = parseInt(parts[0]) + 543;
+              const monthNames = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+              return `${monthNames[parseInt(parts[1])-1]} ${yearStr.toString().substring(2)}`;
+            }),
+            datasets: [{
+              label: 'ปริมาณการใช้ไฟฟ้ารวม (หน่วย)',
+              data: usages,
+              borderColor: '#7C3AED',
+              backgroundColor: 'rgba(124, 58, 237, 0.05)',
+              borderWidth: 3,
+              fill: true,
+              tension: 0.3
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { font: { family: 'Sarabun' } } }
+            },
+            scales: {
+              y: { beginAtZero: true }
+            }
+          }
+        });
+      }
+      
+      // 4. เตรียมข้อมูลสัดส่วนค่าใช้จ่ายไฟฟ้ารายตึกประจำเดือนที่เลือก (Doughnut Chart และตารางสรุป)
+      const buildingsMap = new Map();
+      
+      // 4.1. ดึงตึกที่เปิดใช้งานอยู่ (Active) เป็นหลัก
+      (data.allBuildings || []).forEach(b => {
+        const isBuildingActive = b.status && b.status.toString().trim().toLowerCase() === 'active';
+        if (isBuildingActive) {
+          buildingsMap.set(b.name.trim(), {
+            id: b.id || 'B_UNKNOWN',
+            name: b.name.trim(),
+            meterNo: b.meterNo || '-',
+            status: 'active'
+          });
+        }
+      });
+      
+      // แปลงแผนที่เป็นอาเรย์แล้วเรียงตามตัวอักษรภาษาไทย เพื่อความสวยงามเป็นระเบียบและลำดับเสถียร
+      const activeBuildings = Array.from(buildingsMap.values());
+      activeBuildings.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+      
+      const buildingCostsForMonth = [];
+      const buildingLabelsForMonth = [];
+      
+      // ชุดสีพรีเมียมรองรับปริมาณตึกจำนวนมาก (Dynamic Repeating Palette)
+      const baseColors = [
+        '#8B5CF6', '#A78BFA', '#F472B6', '#10B981', '#3B82F6', 
+        '#F59E0B', '#14B8A6', '#EC4899', '#6366F1', '#4F46E5', 
+        '#06B6D4', '#22C55E', '#EAB308', '#F97316', '#EF4444', 
+        '#84CC16'
+      ];
+      const getChartColors = (num) => {
+        const result = [];
+        for (let i = 0; i < num; i++) {
+          result.push(baseColors[i % baseColors.length]);
+        }
+        return result;
+      };
+      
+      const monthUsageData = []; // เก็บตัวเลขใช้จริงของแต่ละตึก
+      const tbody = document.getElementById('admin-dashboard-table-body');
+      if (tbody) tbody.innerHTML = '';
+      
+      activeBuildings.forEach(b => {
+        const record = monthRecords.find(r => r.buildingName === b.name);
+        const usageVal = record ? (record.usage || 0) : 0;
+        const costVal = record ? (record.cost || 0) : 0;
+        const prevMeterVal = record ? record.previousMeter : '-';
+        const currMeterVal = record ? record.currentMeter : '-';
+        const isDone = !!record;
+        
+        monthUsageData.push(usageVal);
+        
+        if (costVal > 0) {
+          buildingLabelsForMonth.push(b.name);
+          buildingCostsForMonth.push(costVal);
+        }
+        
+        if (tbody) {
+          const tr = document.createElement('tr');
+          tr.style.borderBottom = '1px solid rgba(142, 131, 203, 0.1)';
+          tr.innerHTML = `
+            <td style="padding: 10px 8px; font-weight: 600; color: var(--text-main);">🏢 ${b.name}</td>
+            <td style="padding: 10px 8px; text-align: right;">${typeof prevMeterVal === 'number' ? prevMeterVal.toLocaleString() : prevMeterVal}</td>
+            <td style="padding: 10px 8px; text-align: right;">${typeof currMeterVal === 'number' ? currMeterVal.toLocaleString() : currMeterVal}</td>
+            <td style="padding: 10px 8px; text-align: right; font-weight: 600; color: var(--primary);">${usageVal.toLocaleString()} หน่วย</td>
+            <td style="padding: 10px 8px; text-align: right; font-weight: 700; color: var(--text-main);">฿${costVal.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
+            <td style="padding: 10px 8px; text-align: center;">
+              <span class="status-badge ${isDone ? 'done' : 'pending'}" style="padding: 3px 8px; font-size: 0.75rem;">
+                ${isDone ? '✓ บันทึกแล้ว' : '⌛ ยังไม่บันทึก'}
+              </span>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        }
+      });
+      
+      // 4.3 วาดกราฟ Doughnut (Proportion of Cost for selected month)
+      if (typeof Chart !== 'undefined') {
+        if (pieChart) pieChart.destroy();
+        const pieCtx = document.getElementById('chart-building-ratio').getContext('2d');
+        
+        if (buildingCostsForMonth.length > 0) {
+          pieChart = new Chart(pieCtx, {
+            type: 'doughnut',
+            data: {
+              labels: buildingLabelsForMonth,
+              datasets: [{
+                data: buildingCostsForMonth,
+                backgroundColor: getChartColors(buildingLabelsForMonth.length)
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false }
+              }
+            }
+          });
+        } else {
+          // หากไม่มีข้อมูล วาดวงกลมว่างๆ
+          pieChart = new Chart(pieCtx, {
+            type: 'doughnut',
+            data: {
+              labels: ['ไม่มีข้อมูลค่าใช้จ่าย'],
+              datasets: [{
+                data: [1],
+                backgroundColor: ['#E5E7EB']
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false }
+              }
+            }
+          });
+        }
+      }
+      
+      // 5. วาดกราฟแท่งเปรียบเทียบทุกอาคารประจำเดือน (Bar Chart comparing all buildings)
+      if (typeof Chart !== 'undefined') {
+        if (allBuildingsCompareChart) allBuildingsCompareChart.destroy();
+        const compCtx = document.getElementById('chart-all-buildings-compare').getContext('2d');
+        
+        allBuildingsCompareChart = new Chart(compCtx, {
+          type: 'bar',
+          data: {
+            labels: activeBuildings.map(b => b.name),
+            datasets: [{
+              label: 'ปริมาณการใช้ไฟฟ้า (หน่วย)',
+              data: monthUsageData,
+              backgroundColor: 'rgba(124, 58, 237, 0.65)',
+              borderColor: '#7C3AED',
+              borderWidth: 1.5,
+              borderRadius: 8
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return context.raw.toLocaleString() + ' หน่วย';
+                  }
+                }
+              }
+            },
+            scales: {
+              x: { ticks: { font: { family: 'Sarabun' } } },
+              y: { beginAtZero: true, ticks: { font: { family: 'Sarabun' } } }
+            }
+          }
+        });
+      }
+    }
+
+    // --------------------------------------------------------------------------
+    // 9.8 หน้าจอยืนยันความถูกต้องก่อนบันทึกจริง (Confirmation Modal Logic)
+    // --------------------------------------------------------------------------
+    const confirmModal = document.getElementById('confirmation-modal');
+    const btnModalCancel = document.getElementById('btn-modal-cancel');
+    const btnModalConfirm = document.getElementById('btn-modal-confirm');
+    const btnModalCloseX = document.getElementById('btn-modal-close-x');
+    
+    // ตรวจสอบเบื้องต้นทางไคลเอนต์และกดส่งฟอร์ม (Form Submission)
+    recordForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const bName = recordBuilding.value;
+      const dateVal = recordDate.value;
+      const prev = parseFloat(recordPrevMeter.value || 0);
+      const curr = parseFloat(recordCurrMeter.value || 0);
+      const rate = 0.0;
+      
+      if (!bName) {
+        showToast("กรุณาเลือกตึกหรือบ้านพักที่ต้องการบันทึก", "error");
+        return;
+      }
+      
+      if (curr < prev) {
+        showToast("ข้อผิดพลาด: ค่ามิเตอร์ปัจจุบันต้องไม่ต่ำกว่าค่าครั้งก่อน!", "error");
+        return;
+      }
+      
+      // ถ่ายรูปหน้าปัดมิเตอร์จำเป็นหรือไม่ (กรณีนี้อยากให้มีแนบภาพถ่ายมิเตอร์ด้วยเป็นคุณสมบัติข้อ 9)
+      if (!state.compressedPhotoBase64) {
+        showToast("กรุณาเปิดกล้องมือถือถ่ายรูปหน้าปัดมิเตอร์ไฟฟ้าเพื่อแนบไฟล์หลักฐาน", "error");
+        return;
+      }
+      
+      const usage = curr - prev;
+      const cost = isRecorder ? 0.0 : usage * rate;
+      
+      // จัดเก็บข้อมูลเพื่อเตรียมทำการยืนยันเซฟ
+      state.tempReading = {
+        date: dateVal,
+        recorderName: state.currentUser ? state.currentUser.fullName : "Unknown Staff",
+        buildingName: bName,
+        previousMeter: prev,
+        currentMeter: curr,
+        usage: usage,
+        unitRate: rate,
+        calculatedCost: cost,
+        photoData: state.compressedPhotoBase64 // ส่งรูปที่ถูกบีบอัดขนาดแล้ว
+      };
+      
+      // อัพเดทข้อมูลลงกล่อง Modal ยืนยันข้อมูล
+      document.getElementById('cf-building').innerText = bName;
+      document.getElementById('cf-date').innerText = dateVal;
+      document.getElementById('cf-prev-meter').innerText = prev.toLocaleString();
+      document.getElementById('cf-curr-meter').innerText = curr.toLocaleString();
+      document.getElementById('cf-usage').innerText = usage.toLocaleString();
+      document.getElementById('cf-rate').innerText = rate > 0 ? rate.toFixed(1) : "รอเจ้าหน้าที่ระบุ";
+      document.getElementById('cf-cost').innerText = rate > 0 ? `฿${cost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : "รอเจ้าหน้าที่ระบุ";
+      
+      const cfNoPhoto = document.getElementById('cf-no-photo-text');
+      const cfImg = document.getElementById('cf-image');
+      
+      if (state.compressedPhotoBase64) {
+        cfNoPhoto.classList.add('hidden');
+        cfImg.classList.remove('hidden');
+        cfImg.src = state.compressedPhotoBase64;
+      } else {
+        cfNoPhoto.classList.remove('hidden');
+        cfImg.classList.add('hidden');
+        cfImg.src = "";
+      }
+      
+      // เปิดแสดง Modal
+      confirmModal.classList.add('active');
+    });
+
+    // ปุ่มยกเลิก/ปิด Modal
+    const closeModalFunc = () => {
+      confirmModal.classList.remove('active');
+    };
+    
+    btnModalCancel.addEventListener('click', closeModalFunc);
+    btnModalCloseX.addEventListener('click', closeModalFunc);
+
+    // ปุ่มกดยืนยันบันทึกลงฐานข้อมูล (ส่งไปยัง Google Sheets)
+    btnModalConfirm.addEventListener('click', async () => {
+      if (!state.tempReading) return;
+      
+      // แสดงสถานะการส่งข้อมูล
+      btnModalConfirm.disabled = true;
+      btnModalConfirm.querySelector('span').innerText = "กำลังอัปโหลดและบันทึก...";
+      
+      const response = await callAPI('saveReading', state.tempReading);
+      
+      btnModalConfirm.disabled = false;
+      btnModalConfirm.querySelector('span').innerText = "ยืนยันข้อมูลถูกต้อง";
+      closeModalFunc();
+      
+      if (response.success) {
+        showToast("บันทึกข้อมูลเรียบร้อยแล้ว!");
+        
+        // รีเซ็ตแบบฟอร์มการบันทึก
+        recordForm.reset();
+        resetCameraField();
+        
+        // รีเซ็ตวันกลับไปที่เดิม และโหลดข้อมูลใหม่
+        recordDate.value = getLocalDateString();
+        loadRecorderViewData();
+      } else {
+        showToast("เกิดข้อผิดพลาดในการบันทึก: " + response.error, "error");
+      }
+    });
+
+    // --------------------------------------------------------------------------
+    // 9.9 ส่วนแสดงผลรายงาน และการส่งออกรูปภาพ (.PNG) (Invoice Report & Export)
+    // --------------------------------------------------------------------------
+    const btnBackToRecorder = document.getElementById('btn-back-to-recorder');
+    const btnExportPng = document.getElementById('btn-export-png');
+    
+    function openReceiptReport(readingId, data, serverPhotoUrl) {
+      document.getElementById('rpt-id').innerText = readingId;
+      document.getElementById('rpt-building').innerText = data.buildingName;
+      document.getElementById('rpt-date').innerText = data.date;
+      document.getElementById('rpt-recorder').innerText = data.recorderName;
+      document.getElementById('rpt-prev').innerText = data.previousMeter.toLocaleString();
+      document.getElementById('rpt-curr').innerText = data.currentMeter.toLocaleString();
+      document.getElementById('rpt-usage').innerText = data.usage.toLocaleString();
+      const rate = parseFloat(data.unitRate || 0);
+      const cost = parseFloat(data.calculatedCost || 0);
+      const rptRate = document.getElementById('rpt-rate');
+      const rptCost = document.getElementById('rpt-cost');
+      
+      if (rate > 0) {
+        if (rptRate) rptRate.parentElement.innerHTML = `<span id="rpt-rate">${rate.toFixed(2)}</span> บาท/หน่วย`;
+        if (rptCost) rptCost.parentElement.innerHTML = `<span id="rpt-cost">${cost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span> บาท`;
+      } else {
+        if (rptRate) rptRate.parentElement.innerHTML = `<span id="rpt-rate" style="color: var(--warning); font-weight: 600;">รอเจ้าหน้าที่ระบุ</span>`;
+        if (rptCost) rptCost.parentElement.innerHTML = `<span id="rpt-cost" style="color: var(--warning); font-weight: 600;">รอเจ้าหน้าที่ระบุ</span>`;
+      }
+      
+      const sigNameEl = document.getElementById('rpt-signature-name');
+      if (sigNameEl) {
+        sigNameEl.innerText = `(${data.recorderName || '................................................'})`;
+      }
+      
+      switchView('report');
+    }
+
+    btnBackToRecorder.addEventListener('click', () => {
+      switchView('recorder');
+    });
+
+    // ปุ่ม Export รูปภาพการใช้ไฟฟ้าด้วย html2canvas
+    btnExportPng.addEventListener('click', () => {
+      const element = document.getElementById('export-receipt-element');
+      const bName = document.getElementById('rpt-building').innerText;
+      const dateVal = document.getElementById('rpt-date').innerText;
+      
+      // บังคับเปลี่ยนสไตล์ชั่วคราวเพื่อให้รูปออกมาชัดและพรีเมียม
+      element.style.transform = 'scale(1)';
+      element.style.boxShadow = 'none';
+      element.style.border = '1px solid #C4B5FD';
+      
+      showToast("ระบบกำลังแปลงบิลให้เป็นภาพดาวน์โหลด...");
+      
+      html2canvas(element, {
+        scale: 2, // เพิ่มความคมชัดภาพสเกล 2 เท่า
+        useCORS: true,
+        backgroundColor: '#FFFFFF',
+        logging: false
+      }).then(canvas => {
+        // คืนค่ารูปแบบสไตล์เดิม
+        element.style.boxShadow = 'var(--shadow-lg)';
+        element.style.border = '1px solid var(--border-color)';
+        
+        // สร้างไฟล์รูปภาพ .png และดาวน์โหลดลงเครื่อง
+        const link = document.createElement('a');
+        link.download = `ค่าไฟฟ้า_${bName}_รอบ_${dateVal}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+        
+        showToast("บันทึกรูปภาพใบสรุปค่าไฟฟ้าสำเร็จ!");
+      }).catch(err => {
+        showToast("ไม่สามารถสร้างรูปภาพได้: " + err.message, "error");
+        console.error(err);
+      });
+    });
+
+    // --------------------------------------------------------------------------
+    // 9.10 ฝั่งผู้อำนวยการ / ผู้ดูแลระบบ (Admin View & Charts)
+    // --------------------------------------------------------------------------
+
+    function renderIndividualBuildingChart(buildingName) {
+      if (typeof Chart === 'undefined') return;
+      if (individualBuildingChart) individualBuildingChart.destroy();
+      
+      if (!state.adminDashboardData || !state.adminDashboardData.recentRecords) return;
+      
+      // กรองประวัติบันทึกเฉพาะของตึกนี้ และเรียงจากเก่าไปใหม่เพื่อวาดแกน X
+      const records = state.adminDashboardData.recentRecords
+        .filter(r => r.buildingName === buildingName)
+        .sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+      // ดึงข้อมูลสำหรับแกน
+      const labels = [];
+      const usages = [];
+      const costs = [];
+      
+      records.forEach(r => {
+        // ฟอร์แมตวัน YYYY-MM
+        const ym = r.date.substring(0, 7);
+        const parts = ym.split('-');
+        const yearTH = parseInt(parts[0]) + 543;
+        const monthNames = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+        const formattedDate = `${monthNames[parseInt(parts[1])-1]} ${yearTH.toString().substring(2)}`;
+        
+        labels.push(formattedDate);
+        usages.push(r.usage);
+        
+        const costVal = r.cost !== undefined ? r.cost : (r.calculatedCost !== undefined ? r.calculatedCost : 0);
+        costs.push(costVal);
+      });
+      
+      const ctx = document.getElementById('chart-individual-building').getContext('2d');
+      individualBuildingChart = new Chart(ctx, {
+        type: 'bar', // Base type
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              type: 'bar',
+              label: 'ปริมาณไฟฟ้าที่ใช้ (หน่วย)',
+              data: usages,
+              backgroundColor: 'rgba(139, 92, 246, 0.65)',
+              borderColor: '#8B5CF6',
+              borderWidth: 1,
+              yAxisID: 'y-usage',
+              order: 2
+            },
+            {
+              type: 'line',
+              label: 'ค่าไฟฟ้าที่คำนวณได้ (บาท)',
+              data: costs,
+              borderColor: '#F35B04',
+              backgroundColor: 'rgba(243, 91, 4, 0.1)',
+              borderWidth: 3,
+              tension: 0.35,
+              fill: false,
+              yAxisID: 'y-cost',
+              order: 1
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { font: { family: 'Sarabun' } }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  let label = context.dataset.label || '';
+                  if (label) {
+                    label += ': ';
+                  }
+                  if (context.datasetIndex === 0) {
+                    label += Math.round(context.raw).toLocaleString() + ' หน่วย';
+                  } else {
+                    label += '฿' + Math.round(context.raw).toLocaleString() + ' บาท';
+                  }
+                  return label;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { font: { family: 'Sarabun' } },
+              grid: { display: false }
+            },
+            'y-usage': {
+              type: 'linear',
+              display: true,
+              position: 'left',
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'ปริมาณไฟฟ้า (หน่วย)',
+                font: { family: 'Sarabun', weight: 'bold' }
+              },
+              ticks: { font: { family: 'Sarabun' } }
+            },
+            'y-cost': {
+              type: 'linear',
+              display: true,
+              position: 'right',
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'ค่าไฟฟ้า (บาท)',
+                font: { family: 'Sarabun', weight: 'bold' }
+              },
+              ticks: { font: { family: 'Sarabun' } },
+              grid: { drawOnChartArea: false } // ป้องกันเส้นกริดตีกัน
+            }
+          }
+        }
+      });
+    }
+
+    // แสดงประวัติในตารางสำหรับแอดมิน
+    const lightboxModal = document.getElementById('image-lightbox-modal');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const lightboxTitle = document.getElementById('lightbox-title');
+    
+    document.getElementById('btn-lightbox-close').addEventListener('click', () => {
+      lightboxModal.classList.remove('active');
+    });
+
+    function renderHistoryTable(records) {
+      const tbody = document.getElementById('admin-history-table-body');
+      tbody.innerHTML = '';
+      
+      if (!records || records.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">ไม่มีประวัติการบันทึกข้อมูล</td></tr>`;
+        return;
+      }
+      
+      records.forEach(r => {
+        const tr = document.createElement('tr');
+        
+        let photoBtnHtml = `<span style="color: var(--text-muted); font-size:0.75rem;">ไม่มีรูปแนบ</span>`;
+        if (r.photoUrl) {
+          photoBtnHtml = `
+            <button class="btn-view-photo" data-url="${r.photoUrl}" data-title="${r.buildingName} - ${r.date}">
+              <!-- SVG Camera Icon -->
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="12" height="12" fill="currentColor">
+                <path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/>
+              </svg>
+              <span>เปิดดู</span>
+            </button>
+          `;
+        }
+        
+        tr.innerHTML = `
+          <td><b>${r.date}</b></td>
+          <td>${r.buildingName}</td>
+          <td>${r.previousMeter.toLocaleString()}</td>
+          <td>${r.currentMeter.toLocaleString()}</td>
+          <td style="color: var(--primary); font-weight:600;">${r.usage.toLocaleString()}</td>
+          <td><b>฿${r.cost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</b></td>
+          <td>${photoBtnHtml}</td>
+        `;
+        
+        tbody.appendChild(tr);
+      });
+      
+      // ลงทะเบียนเหตุการณ์คลิกเปิดรูปภาพแบบขยาย
+      tbody.querySelectorAll('.btn-view-photo').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const target = e.currentTarget;
+          const url = target.getAttribute('data-url');
+          const title = target.getAttribute('data-title');
+          
+          lightboxImg.src = url;
+          lightboxTitle.innerText = `รูปหลักฐาน: ${title}`;
+          lightboxModal.classList.add('active');
+        });
+      });
+    }
+
+    // ระบบจัดการข้อมูลอาคารฝั่งแอดมิน (Add/Remove Building List)
+    function renderAdminBuildingsList(buildings) {
+      const container = document.getElementById('admin-buildings-list-container');
+      container.innerHTML = '';
+      
+      if (!buildings || buildings.length === 0) {
+        container.innerHTML = `<div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 15px;">ไม่มีข้อมูลอาคาร</div>`;
+        return;
+      }
+      
+      buildings.forEach(b => {
+        const isActive = b.status === 'active';
+        
+        const row = document.createElement('div');
+        row.className = 'building-item-row';
+        row.innerHTML = `
+          <div>
+            <div class="building-item-name">${b.name}</div>
+            <div style="font-size:0.7rem; color: var(--text-muted);">เลขมิเตอร์: ${b.meterNo || '-'}</div>
+          </div>
+          <button class="btn-toggle-status ${isActive ? 'active' : 'inactive'}" data-name="${b.name}" data-status="${b.status}">
+            ${isActive ? '🟢 เปิดใช้งานอยู่' : '🔴 ปิดใช้งาน'}
+          </button>
+        `;
+        container.appendChild(row);
+      });
+      
+      // ดักฟังก์ชันกดสลับเปิดปิดอาคาร
+      container.querySelectorAll('.btn-toggle-status').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const name = btn.getAttribute('data-name');
+          const currentStatus = btn.getAttribute('data-status');
+          const targetStatus = currentStatus === 'active' ? 'inactive' : 'active';
+          
+          const confirmText = targetStatus === 'inactive' ? 
+            `คุณแน่ใจหรือไม่ที่จะทำการปิดการใช้งานอาคาร: "${name}"? อาคารนี้จะไม่แสดงในดรอปดาวน์เพื่อการกรอกข้อมูลใหม่` :
+            `คุณต้องการเปิดการใช้งานอาคาร: "${name}" อีกครั้งใช่หรือไม่?`;
+            
+          if (confirm(confirmText)) {
+            const res = await callAPI('toggleBuilding', { buildingName: name, status: targetStatus });
+            if (res.success) {
+              showToast("อัปเดตสถานะของอาคารสำเร็จ");
+              loadAdminDashboardData();
+            } else {
+              showToast("สลับสถานะล้มเหลว: " + res.error, "error");
+            }
+          }
+        });
+      });
+    }
+
+    // จัดการส่งฟอร์มเพื่อเพิ่มอาคารใหม่
+    const addBuildingForm = document.getElementById('admin-add-building-form');
+    addBuildingForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const newName = document.getElementById('new-building-name').value.trim();
+      const newMeter = document.getElementById('new-building-meter').value.trim();
+      
+      if (!newName) return;
+      
+      const res = await callAPI('addBuilding', { buildingName: newName, meterNo: newMeter });
+      if (res.success) {
+        showToast(res.message || "เพิ่มอาคารใหม่เข้าระบบสำเร็จแล้ว!");
+        addBuildingForm.reset();
+        loadAdminDashboardData();
+      } else {
+        showToast(res.error, "error");
+      }
+    });
+
+    // --------------------------------------------------------------------------
+    // 9.11 การล็อกอินและการล็อกเอาท์ (Authentication Controllers)
+    // --------------------------------------------------------------------------
+    const loginForm = document.getElementById('login-form');
+    const loginError = document.getElementById('login-error-msg');
+    
+    // ตั้งค่าวันของวันนี้สำหรับช่อง recordDate อัตโนมัติ
+    recordDate.value = getLocalDateString();
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const usernameInput = document.getElementById('username').value;
+      const passwordInput = document.getElementById('password').value;
+      
+      loginError.style.display = 'none';
+      const btn = loginForm.querySelector('.btn-submit');
+      btn.disabled = true;
+      btn.querySelector('span').innerText = "กำลังตรวจสอบข้อมูล...";
+      
+      const res = await callAPI('login', { username: usernameInput, password: passwordInput });
+      
+      btn.disabled = false;
+      btn.querySelector('span').innerText = "เข้าสู่ระบบ";
+      
+      if (res.success) {
+        state.currentUser = res.user;
+        sessionStorage.setItem('CURRENT_USER', JSON.stringify(res.user));
+        showToast(`ยินดีต้อนรับคุณ ${res.user.fullName}`);
+        
+        if (res.user.role === 'admin') {
+          try {
+            await loadAdminDashboardData();
+          } catch (err) {
+            console.error("Failed to load admin dashboard data on login:", err);
+            showToast("โหลดสถิติแดชบอร์ดมีข้อผิดพลาด: " + err.message, "error");
+          }
+          switchView('admin');
+        } else if (res.user.role === 'billing') {
+          try {
+            await loadBillingViewData();
+          } catch (err) {
+            console.error("Failed to load billing data on login:", err);
+            showToast("โหลดข้อมูลเก็บค่าไฟมีข้อผิดพลาด: " + err.message, "error");
+          }
+          switchView('billing');
+        } else {
+          try {
+            await loadRecorderViewData();
+          } catch (err) {
+            console.error("Failed to load recorder view data on login:", err);
+            showToast("โหลดข้อมูลบันทึกมีข้อผิดพลาด: " + err.message, "error");
+          }
+          switchView('recorder');
+        }
+      } else {
+        loginError.innerText = res.error || "เกิดข้อผิดพลาดในการตรวจสอบบัญชี";
+        loginError.style.display = 'block';
+      }
+    });
+
+    logoutBtn.addEventListener('click', () => {
+      state.currentUser = null;
+      sessionStorage.removeItem('CURRENT_USER');
+      loginForm.reset();
+      switchView('login');
+      showToast("ออกจากระบบเรียบร้อยแล้ว");
+    });
+
+    // --------------------------------------------------------------------------
+    // 9.12 ระบบโมดอลจัดการอาคาร (เพิ่ม/แก้ไข/ปิดใช้งาน) สำหรับผู้บันทึกและแอดมิน
+    // --------------------------------------------------------------------------
+    const btnOpenManageBuildings = document.getElementById('btn-open-manage-buildings');
+    const manageBuildingsModal = document.getElementById('manage-buildings-modal');
+    const btnManageCloseX = document.getElementById('btn-manage-close-x');
+    
+    const tabAddBuilding = document.getElementById('tab-add-building');
+    const tabEditBuilding = document.getElementById('tab-edit-building');
+    const formManageAdd = document.getElementById('form-manage-add');
+    const formManageEdit = document.getElementById('form-manage-edit');
+    
+    const modalAddBuildingForm = document.getElementById('modal-add-building-form');
+    const modalEditBuildingForm = document.getElementById('modal-edit-building-form');
+    const modalEditSelect = document.getElementById('modal-edit-select');
+    const modalEditName = document.getElementById('modal-edit-name');
+    const modalEditMeter = document.getElementById('modal-edit-meter');
+    const btnModalToggleStatus = document.getElementById('btn-modal-toggle-status');
+
+    // เปิดโมดอล
+    btnOpenManageBuildings.addEventListener('click', () => {
+      modalAddBuildingForm.reset();
+      modalEditBuildingForm.reset();
+      switchManageTab('add');
+      manageBuildingsModal.classList.add('active');
+    });
+
+    // ปิดโมดอล
+    const closeManageModal = () => {
+      manageBuildingsModal.classList.remove('active');
+    };
+    btnManageCloseX.addEventListener('click', closeManageModal);
+
+    // สลับแท็บ เพิ่ม/แก้ไข อาคาร
+    function switchManageTab(tab) {
+      if (tab === 'add') {
+        tabAddBuilding.className = 'btn-toggle-status active';
+        tabAddBuilding.style.border = '1px solid var(--primary)';
+        tabAddBuilding.style.background = 'var(--primary-subtle)';
+        tabAddBuilding.style.color = 'var(--primary)';
+        
+        tabEditBuilding.className = 'btn-toggle-status';
+        tabEditBuilding.style.border = '1px solid var(--border-color)';
+        tabEditBuilding.style.background = 'transparent';
+        tabEditBuilding.style.color = 'var(--text-muted)';
+        
+        formManageAdd.classList.remove('hidden');
+        formManageEdit.classList.add('hidden');
+      } else {
+        tabEditBuilding.className = 'btn-toggle-status active';
+        tabEditBuilding.style.border = '1px solid var(--primary)';
+        tabEditBuilding.style.background = 'var(--primary-subtle)';
+        tabEditBuilding.style.color = 'var(--primary)';
+        
+        tabAddBuilding.className = 'btn-toggle-status';
+        tabAddBuilding.style.border = '1px solid var(--border-color)';
+        tabAddBuilding.style.background = 'transparent';
+        tabAddBuilding.style.color = 'var(--text-muted)';
+        
+        formManageEdit.classList.remove('hidden');
+        formManageAdd.classList.add('hidden');
+        updateModalEditDropdown();
+      }
+    }
+
+    tabAddBuilding.addEventListener('click', () => switchManageTab('add'));
+    tabEditBuilding.addEventListener('click', () => switchManageTab('edit'));
+
+    // อัปเดต Dropdown ในฝั่งแก้ไข
+    function updateModalEditDropdown() {
+      modalEditSelect.innerHTML = '<option value="" disabled selected>-- เลือกอาคาร --</option>';
+      state.buildings.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b.name;
+        opt.innerText = `${b.name} (${b.meterNo})`;
+        modalEditSelect.appendChild(opt);
+      });
+    }
+
+    // เมื่อแอดมินหรือเจ้าหน้าที่เลือกตึกที่จะแก้ไขในโมดอล ให้ดึงค่ามาใส่ฟอร์ม
+    modalEditSelect.addEventListener('change', () => {
+      const selectedName = modalEditSelect.value;
+      const b = state.buildings.find(item => item.name === selectedName);
+      if (b) {
+        modalEditName.value = b.name;
+        modalEditMeter.value = b.meterNo;
+      }
+    });
+
+    // ส่งข้อมูลเพิ่มอาคารผ่านโมดอล
+    modalAddBuildingForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const bName = document.getElementById('modal-new-name').value.trim();
+      const meterNo = document.getElementById('modal-new-meter').value.trim();
+      
+      const btn = modalAddBuildingForm.querySelector('.btn-submit');
+      btn.disabled = true;
+      btn.querySelector('span').innerText = "กำลังบันทึก...";
+      
+      const res = await callAPI('addBuilding', { buildingName: bName, meterNo: meterNo });
+      btn.disabled = false;
+      btn.querySelector('span').innerText = "➕ เพิ่มอาคารเข้าสู่ระบบ";
+      
+      if (res.success) {
+        showToast(res.message || "เพิ่มอาคารสำเร็จ");
+        closeManageModal();
+        await loadRecorderViewData();
+      } else {
+        showToast(res.error, "error");
+      }
+    });
+
+    // ส่งข้อมูลแก้ไขชื่อ/มิเตอร์อาคารผ่านโมดอล
+    modalEditBuildingForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const oldName = modalEditSelect.value;
+      const newName = modalEditName.value.trim();
+      const newMeter = modalEditMeter.value.trim();
+      
+      if (!oldName || !newName) return;
+      
+      const btn = modalEditBuildingForm.querySelector('.btn-submit');
+      btn.disabled = true;
+      btn.querySelector('span').innerText = "กำลังบันทึก...";
+      
+      const res = await callAPI('editBuilding', { oldName: oldName, newName: newName, newMeterNo: newMeter });
+      btn.disabled = false;
+      btn.querySelector('span').innerText = "💾 บันทึกการแก้ไข";
+      
+      if (res.success) {
+        showToast(res.message || "แก้ไขข้อมูลอาคารเรียบร้อยแล้ว");
+        closeManageModal();
+        await loadRecorderViewData();
+        // หากกำลังกรอกข้อมูลอยู่ ให้ดรอปดาวน์อัปเดตและเคลียร์ฟอร์ม
+        recordForm.reset();
+        resetCameraField();
+      } else {
+        showToast(res.error, "error");
+      }
+    });
+
+    // กดปิดใช้งานอาคารผ่านปุ่มโมดอล
+    btnModalToggleStatus.addEventListener('click', async () => {
+      const selectedName = modalEditSelect.value;
+      if (!selectedName) {
+        showToast("กรุณาเลือกอาคารที่ต้องการปิดใช้งาน", "error");
+        return;
+      }
+      
+      if (confirm(`คุณแน่ใจหรือไม่ที่จะทำการปิดการใช้งานอาคาร: "${selectedName}"? อาคารนี้จะไม่แสดงในรายการบันทึกค่าไฟอีกต่อไป`)) {
+        const res = await callAPI('toggleBuilding', { buildingName: selectedName, status: 'inactive' });
+        if (res.success) {
+          showToast("ปิดการใช้งานอาคารสำเร็จ");
+          closeManageModal();
+          await loadRecorderViewData();
+          recordForm.reset();
+          resetCameraField();
+        } else {
+          showToast(res.error, "error");
+        }
+      }
+    });
+
+    // ตรวจจับกล้องถ่ายรูปยกเลิกสไลด์และดึงเซสชันการล็อกอินกลับคืน
+    document.addEventListener('DOMContentLoaded', async () => {
+      checkApiConfig();
+      
+      // ตรวจจับการสลับตึกในกราฟแดชบอร์ดแอดมิน
+      const chartSelectEl = document.getElementById('chart-building-select');
+      if (chartSelectEl) {
+        chartSelectEl.addEventListener('change', (e) => {
+          renderIndividualBuildingChart(e.target.value);
+        });
+      }
+
+      // ตรวจจับการเปลี่ยนเดือนในแดชบอร์ดแอดมิน
+      const adminMonthSelect = document.getElementById('admin-month-select');
+      if (adminMonthSelect) {
+        adminMonthSelect.addEventListener('change', (e) => {
+          updateAdminDashboardForMonth(e.target.value);
+        });
+      }
+
+      // ตรวจจับการเปลี่ยนเดือนในหน้าเก็บค่าไฟ
+      const billingMonthSelect = document.getElementById('billing-month-select');
+      if (billingMonthSelect) {
+        billingMonthSelect.addEventListener('change', () => {
+          renderBillingRatesTable();
+        });
+      }
+
+      // ปุ่มส่งออกรูปภาพแดชบอร์ดแอดมิน (Export Dashboard PNG)
+      const btnExportAdmin = document.getElementById('btn-export-admin-dashboard');
+      if (btnExportAdmin) {
+        btnExportAdmin.addEventListener('click', () => {
+          const element = document.getElementById('admin-dashboard-snapshot');
+          if (!element) return;
+          
+          const selectedMonth = document.getElementById('admin-month-select').value;
+          
+          showToast("ระบบกำลังแปลงแดชบอร์ดให้เป็นภาพดาวน์โหลด...");
+          
+          // บังคับเปลี่ยนสไตล์ชั่วคราวเพื่อให้ออกมารูปที่พรีเมียม
+          element.style.background = '#FFFFFF';
+          element.style.padding = '30px';
+          element.style.borderRadius = '24px';
+          
+          html2canvas(element, {
+            scale: 2, // สเกล 2 เท่าเพื่อความคมชัดสูงสุด
+            useCORS: true,
+            backgroundColor: '#FFFFFF',
+            logging: false
+          }).then(canvas => {
+            // คืนค่ารูปแบบสไตล์เดิม
+            element.style.background = 'transparent';
+            element.style.padding = '0';
+            element.style.borderRadius = '0';
+            
+            const link = document.createElement('a');
+            link.download = `รายงานค่าไฟฟ้าแดชบอร์ด_รอบเดือน_${selectedMonth}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            
+            showToast("ส่งออกรูปภาพแดชบอร์ดเพื่อเสนอที่ประชุมสำเร็จ!");
+          }).catch(err => {
+            showToast("ไม่สามารถสร้างรูปภาพได้: " + err.message, "error");
+            console.error(err);
+          });
+        });
+      }
+      
+      // กู้คืนเซสชันผู้ใช้งานเพื่อไม่ต้องล็อกอินใหม่ทุกครั้งที่กด Refresh (Session Persistence)
+      const savedUser = sessionStorage.getItem('CURRENT_USER');
+      if (savedUser) {
+        try {
+          state.currentUser = JSON.parse(savedUser);
+          if (state.currentUser.role === 'admin') {
+            await loadAdminDashboardData();
+            switchView('admin');
+          } else if (state.currentUser.role === 'billing') {
+            await loadBillingViewData();
+            switchView('billing');
+          } else {
+            await loadRecorderViewData();
+            switchView('recorder');
+          }
+          showToast(`ยินดีต้อนรับกลับเข้าสู่ระบบ คุณ ${state.currentUser.fullName}`);
+        } catch (e) {
+          sessionStorage.removeItem('CURRENT_USER');
+        }
+      }
+    });
+  </script>
+</body>
+</html>
