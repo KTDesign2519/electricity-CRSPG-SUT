@@ -4825,7 +4825,7 @@
           try {
             // ดึงข้อมูลเริ่มต้นเพื่อทดสอบการเชื่อมต่อ
             const res = await callAPI('getInitialData');
-            if (res && res.success) {
+            if (res && res.success && !state.isMockMode) {
               updateConnectionStatus(true, "เชื่อมต่อระบบคลาวด์ Google Sheet พร้อมใช้งาน");
             } else {
               throw new Error("การเชื่อมต่อ Google Sheets ไม่สำเร็จ");
