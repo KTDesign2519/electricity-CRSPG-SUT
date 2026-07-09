@@ -2734,6 +2734,9 @@
         return handleMockRequest(action, payload);
       }
       
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2500); // ตั้งเวลา Timeout 2.5 วินาที
+      
       try {
         const url = new URL(API_URL);
         url.searchParams.append('action', action);
@@ -2742,10 +2745,13 @@
           method: 'POST',
           mode: 'cors',
           redirect: 'follow',
+          signal: controller.signal,
           body: JSON.stringify(payload)
         };
         
         const response = await fetch(url, fetchOptions);
+        clearTimeout(timeoutId);
+        
         if (!response.ok) throw new Error("HTTP error " + response.status);
         const data = await response.json();
         
@@ -2753,6 +2759,7 @@
         updateConnectionStatus(true);
         return data;
       } catch (err) {
+        clearTimeout(timeoutId);
         console.error("API Error, switching to mock mode:", err);
         state.isMockMode = true;
         initMockDatabase();
