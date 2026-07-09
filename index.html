@@ -4812,6 +4812,26 @@
     document.addEventListener('DOMContentLoaded', async () => {
       checkApiConfig();
       
+      // ทดสอบการเชื่อมต่อกับ Google Sheets ทันทีเมื่อเปิดหน้าเว็บ (ถ้ามีการระบุ API_URL)
+      if (!state.isMockMode) {
+        setTimeout(async () => {
+          try {
+            // ดึงข้อมูลเริ่มต้นเพื่อทดสอบการเชื่อมต่อ
+            const res = await callAPI('getInitialData');
+            if (res && res.success) {
+              updateConnectionStatus(true, "เชื่อมต่อระบบคลาวด์ Google Sheet พร้อมใช้งาน");
+            } else {
+              throw new Error("การเชื่อมต่อ Google Sheets ไม่สำเร็จ");
+            }
+          } catch (e) {
+            console.error("การตรวจสอบการเชื่อมต่อเริ่มต้นล้มเหลว:", e);
+            state.isMockMode = true;
+            initMockDatabase();
+            updateConnectionStatus(false, "สลับเป็นโหมดจำลองในเครื่องเนื่องจากติดต่อ Google Sheet ล้มเหลว");
+          }
+        }, 600);
+      }
+      
       // ตรวจจับการสลับตึกในกราฟแดชบอร์ดแอดมิน
       const chartSelectEl = document.getElementById('chart-building-select');
       if (chartSelectEl) {
